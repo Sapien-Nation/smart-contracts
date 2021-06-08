@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import "./interfaces/ITribeToken.sol";
+import "./interfaces/IBadge.sol";
 import "./ERC1155Tradable.sol";
+import "./TribeToken.sol";
 
-contract TribeToken is ERC1155Tradable, ITribeToken {
+contract Badge is ERC1155Tradable, IBadge {
     using SafeMath for uint256;
 
-    mapping(uint256 => string) internal _tribeURIs;
+    struct BadgeProp {
+        uint256 tribeId;
+        uint256 price;
+        string uri;
+    }
+
+    mapping(uint256 => BadgeProp) _badgeProps;
 
     constructor()
-        ERC1155Tradable("https://sapien.com/api/tribe-token")
+        ERC1155Tradable("https://sapien.com/api/badge")
     { }
 
     /**
@@ -24,17 +31,22 @@ contract TribeToken is ERC1155Tradable, ITribeToken {
     function create(
         address _initialOwner,
         uint256 _initialSupply,
+        uint256 _tribeId,
+        uint256 _price,
         string calldata _uri,
         bytes calldata _data
     )
         public
         virtual
-        override(ERC1155Tradable, IERC1155Tradable)
+        override
         returns (uint256)
     {
         uint256 id = super.create(_initialOwner, _initialSupply, _uri, _data);
+        BadgeProp storage badgeProp = _badgeProps[id];
         if (bytes(_uri).length > 0) {
-            _tribeURIs[id] = _uri;
+            badgeProp.tribeId = _tribeId;
+            badgeProp.price = _price;
+            badgeProp.uri = _uri;
         }
         return id;
     }
