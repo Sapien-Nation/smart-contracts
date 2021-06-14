@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity ^0.8.0;
 
 import "./interfaces/ITribeToken.sol";
 import "./ERC1155Tradable.sol";
@@ -10,7 +10,7 @@ contract TribeToken is ERC1155Tradable, ITribeToken {
     mapping(uint256 => string) internal _tribeURIs;
 
     constructor()
-        ERC1155Tradable("https://sapien.com/api/tribe-token")
+        ERC1155Tradable("https://sapien.network/api/tribe-token")
     { }
 
     /**

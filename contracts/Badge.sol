@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity ^0.8.0;
 
 import "./interfaces/IBadge.sol";
 import "./ERC1155Tradable.sol";
@@ -17,7 +17,7 @@ contract Badge is ERC1155Tradable, IBadge {
     mapping(uint256 => BadgeProp) _badgeProps;
 
     constructor()
-        ERC1155Tradable("https://sapien.com/api/badge")
+        ERC1155Tradable("https://sapien.network/api/badge")
     { }
 
     /**
