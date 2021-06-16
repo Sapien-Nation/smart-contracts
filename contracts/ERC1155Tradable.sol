@@ -17,8 +17,14 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenID;
-    mapping(uint256 => address) internal _creators;
-    mapping(uint256 => uint256) internal _tokenSupply;
+    mapping(uint256 => address) private _creators;
+    mapping(uint256 => uint256) private _tokenSupply;
+
+    constructor(
+        string memory _uri
+    )
+        ERC1155(_uri)
+    { }
 
     /**
     * @dev Require msg.sender to be the creator of the token id
@@ -27,7 +33,7 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
         uint256 _id
     )
     {
-        require(_creators[_id] == msg.sender, "ERC1155Tradable#creatorOnly: ONLY_CREATOR_ALLOWED");
+        require(_creators[_id] == msg.sender, "ERC1155Tradable#creatorOnly: CALLER_NO_CREATOR");
         _;
     }
 
@@ -38,15 +44,17 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
         uint256 _id
     )
     {
-        require(balanceOf(msg.sender, _id) > 0, "ERC1155Tradable#ownersOnly: ONLY_OWNERS_ALLOWED");
+        require(balanceOf(msg.sender, _id) > 0, "ERC1155Tradable#ownersOnly: CALLER_NO_TOKEN_OWNER");
         _;
     }
 
-    constructor(
-        string memory _uri
+    modifier existentTokenOnly(
+        uint256 _id
     )
-        ERC1155(_uri)
-    { }
+    {
+        require(exists(_id), "ERC1155Tradable#existentTokenOnly: NON_EXISTENT_TOKEN");
+        _;
+    }
 
     /**
     * @dev Returns the total quantity for a token ID
@@ -85,8 +93,8 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     function create(
         address _initialOwner,
         uint256 _initialSupply,
-        string calldata _uri,
-        bytes calldata _data
+        string memory _uri,
+        bytes memory _data
     )
         public
         virtual
@@ -155,22 +163,32 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
         _mintBatch(_to, _ids, _quantities, _data);
     }
 
-    /**
-    * @dev Change the creator address for given tokens
-    * @param _to   Address of the new creator
-    * @param _ids  Array of Token IDs to change creator
-    */
     function setCreator(
+        address _to,
+        uint256 _id
+    )
+        public
+        override
+    {
+        require(_creators[_id] == _msgSender(), "ERC1155Tradable#setCreator: CALLER_NO_CREATOR");
+        require(_to != address(0), "ERC1155Tradable#setCreator: INVALID_ADDRESS");
+        _setCreator(_to, _id);
+    }
+
+    /**
+    * @dev See {IERC1155Tradable-setCreatorBatch}.
+    */
+    function setCreatorBatch(
         address _to,
         uint256[] memory _ids
     )
         public
         override
     {
-        require(_to != address(0), "ERC1155Tradable#setCreator: INVALID_ADDRESS");
+        require(_to != address(0), "ERC1155Tradable#setCreatorBatch: INVALID_ADDRESS");
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
-            require(_creators[id] == msg.sender, "ERC1155Tradable#creatorOnly: ONLY_CREATOR_ALLOWED");
+            require(_creators[id] == msg.sender, "ERC1155Tradable#setCreatorBatch: CALLER_NO_CREATOR");
             _setCreator(_to, id);
         }
     }

@@ -82,9 +82,20 @@ interface IERC1155Tradable is IERC1155 {
         external;
 
     /**
-     * @dev Sets creator of token types `_ids` to `_to`.
+     * @dev Sets creator of token type `_id` to `_to`.
+     * @param _to   Address of the new creator.
+     * @param _id  Token ID to change creator of.
      */
     function setCreator(
+        address _to,
+        uint256 _id
+    )
+        external;
+
+    /**
+     * @dev Batched version of {setCreator}.
+     */
+    function setCreatorBatch(
         address _to,
         uint256[] memory _ids
     )
