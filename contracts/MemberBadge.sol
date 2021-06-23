@@ -20,12 +20,6 @@ contract MemberBadge is ERC1155Tradable {
         uint256 expired;
     }
 
-    // enum BadgeState {
-    //     INACTIVE,
-    //     ACTIVATED,
-    //     EXPIRED
-    // }
-
     mapping(uint256 => BadgeProp) private _badgeProps;
     mapping(uint256 => mapping(address => BadgeState)) private _badgeStates;
     mapping(uint256 => uint256) private _tribeToBadges;
@@ -55,10 +49,23 @@ contract MemberBadge is ERC1155Tradable {
     //     _;
     // }
 
+    modifier notSapienMemberBadge(
+        uint256 _id
+    )
+    {
+        require(_badgeProps[_id].tribeId > 0, "MemberBadge#notSapienMemberBadge: SAPIEN_MEMBER_BADGE");
+        _;
+    }
+
     /**
-    * @dev Creates a new token type and assigns _initialSupply to an address
+    * @dev Creates a new token type and assigns _initialSupply to an address.
+    *
+    * If `_tribeId` equals to 0, this MemberBadge is SapienMemberBadge.
+    *
     * @param _initialOwner address of the first owner of the token
     * @param _initialSupply amount to supply the first owner
+    * @param _tribeId tribe id where member badge belongs to.
+    * @param _price price of member badge.
     * @param _uri Optional URI for this token type
     * @param _data Data to pass if receiver is contract
     * @return The newly created token ID
@@ -83,8 +90,10 @@ contract MemberBadge is ERC1155Tradable {
         badgeProp.uri = _uri;
         _tribeToBadges[_tribeId] = id;
 
-        BadgeState storage badgeState = _badgeStates[id][_initialOwner];
-        badgeState.inactive = _initialSupply;
+        if (_tribeId != 0) {
+            BadgeState storage badgeState = _badgeStates[id][_initialOwner];
+            badgeState.inactive = _initialSupply;
+        }
         // todo transfer SPN-20 from user
 
         emit MemberBadgeCreated(id, _tribeId, _msgSender());
@@ -142,6 +151,7 @@ contract MemberBadge is ERC1155Tradable {
         public
         virtual
         existentTokenOnly(_id)
+        notSapienMemberBadge(_id)
         returns (uint256, uint256, uint256)
     {
         require(balanceOf(_account, _id) > 0, "MemberBadge#badgeState: NO_TOKEN_OWNER");
@@ -157,7 +167,9 @@ contract MemberBadge is ERC1155Tradable {
         virtual
         existentTokenOnly(_id)
         creatorOnly(_id)
+        notSapienMemberBadge(_id)
     {
+        require(_badgeProps[_id].tribeId > 0, "MemberBadge#activateBadge: SAPIEN_MEMBER_BADGE");
         require(balanceOf(_account, _id) > 0, "MemberBadge#activateBadge: NO_TOKEN_OWNER");
         _activateBadge(_account, _id);
     }
@@ -170,6 +182,7 @@ contract MemberBadge is ERC1155Tradable {
         virtual
         existentTokenOnly(_id)
         creatorOnly(_id)
+        notSapienMemberBadge(_id)
     {
         require(balanceOf(_account, _id) > 0, "MemberBadge#expireBadge: NO_TOKEN_OWNER");
         _expireBadge(_account, _id);
@@ -216,6 +229,7 @@ contract MemberBadge is ERC1155Tradable {
     {
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
+            require(_badgeProps[id].tribeId > 0, "MemberBadge#_beforeTokenTransfer: SAPIEN_MEMBER_BADGE");
             uint256 amount = _amounts[i];
             require(_badgeStates[id][_from].inactive >= amount, "MemberBadge#_beforeTokenTransfer: TRANSFER_FAILED");
         }
