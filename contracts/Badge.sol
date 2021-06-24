@@ -5,16 +5,17 @@ import "./interfaces/IBadge.sol";
 import "./ERC1155Tradable.sol";
 import "./TribeToken.sol";
 
-contract Badge is ERC1155Tradable, IBadge {
+contract Badge is ERC1155Tradable {
     using SafeMath for uint256;
 
     struct BadgeProp {
-        uint256 tribeId;
-        uint256 price;
         string uri;
     }
 
     mapping(uint256 => BadgeProp) _badgeProps;
+
+    event BadgeCreated(uint256 id, address indexed creator);
+    event BadgeMinted(uint256 id, address indexed recipient, uint256 amount);
 
     constructor()
         ERC1155Tradable("https://sapien.network/api/badge")
@@ -31,8 +32,6 @@ contract Badge is ERC1155Tradable, IBadge {
     function create(
         address _initialOwner,
         uint256 _initialSupply,
-        uint256 _tribeId,
-        uint256 _price,
         string calldata _uri,
         bytes calldata _data
     )
@@ -44,10 +43,25 @@ contract Badge is ERC1155Tradable, IBadge {
         uint256 id = super.create(_initialOwner, _initialSupply, _uri, _data);
         BadgeProp storage badgeProp = _badgeProps[id];
         if (bytes(_uri).length > 0) {
-            badgeProp.tribeId = _tribeId;
-            badgeProp.price = _price;
             badgeProp.uri = _uri;
         }
+
+        emit BadgeCreated(id, _msgSender());
         return id;
+    }
+
+    function mint(
+        address _to,
+        uint256 _id,
+        uint256 _amount,
+        bytes memory _data
+    )
+        public
+        virtual
+        override
+        existentTokenOnly(_id)
+    {
+        super.mint(_to, _id, _amount, _data);
+        emit BadgeMinted(_id, _to, _amount);
     }
 }
