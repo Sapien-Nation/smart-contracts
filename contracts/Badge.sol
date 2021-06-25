@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IBadge.sol";
 import "./ERC1155Tradable.sol";
-import "./TribeToken.sol";
+import "./metatx-standard/EIP712MetaTransaction.sol";
 
-contract Badge is ERC1155Tradable {
+contract Badge is ERC1155Tradable, EIP712MetaTransaction {
     using SafeMath for uint256;
 
     struct BadgeProp {
@@ -17,8 +17,12 @@ contract Badge is ERC1155Tradable {
     event BadgeCreated(uint256 id, address indexed creator);
     event BadgeMinted(uint256 id, address indexed recipient, uint256 amount);
 
-    constructor()
+    constructor(
+        string memory _name,
+        string memory _version
+    )
         ERC1155Tradable("https://sapien.network/api/badge")
+        EIP712MetaTransaction(_name, _version)
     { }
 
     /**
@@ -46,7 +50,7 @@ contract Badge is ERC1155Tradable {
             badgeProp.uri = _uri;
         }
 
-        emit BadgeCreated(id, _msgSender());
+        emit BadgeCreated(id, msgSender());
         return id;
     }
 
