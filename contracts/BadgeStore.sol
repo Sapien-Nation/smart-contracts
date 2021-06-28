@@ -18,6 +18,7 @@ contract BadgeStore is Badge {
         IERC20 _spn,
         address _revenueAddress
     )
+        Badge("Sapien Badge", "0.3.0")
     {
         spn = _spn;
         revenueAddress = _revenueAddress;
