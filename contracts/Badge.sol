@@ -41,10 +41,9 @@ contract Badge is ERC1155Tradable, EIP712MetaTransaction {
     )
         public
         virtual
-        override
         returns (uint256)
     {
-        uint256 id = super.create(_initialOwner, _initialSupply, _uri, _data);
+        uint256 id = super.create(_initialOwner, _initialSupply, _data);
         BadgeProp storage badgeProp = _badgeProps[id];
         if (bytes(_uri).length > 0) {
             badgeProp.uri = _uri;

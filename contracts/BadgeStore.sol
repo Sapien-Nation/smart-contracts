@@ -12,16 +12,35 @@ contract BadgeStore is Badge {
 
     address revenueAddress;
 
+    uint256 fee = 5; // 100 percentage
+
     mapping(uint256 => uint256) private _badgePrices;
 
     constructor(
         IERC20 _spn,
         address _revenueAddress
     )
-        Badge("Sapien Badge", "0.3.0")
+        Badge("Sapien Badge", "v3")
     {
         spn = _spn;
         revenueAddress = _revenueAddress;
+    }
+
+    function setRevenueAddress(
+        address _revenueAddress
+    )
+        public
+        onlyOwner
+    {
+        require(_revenueAddress != address(0), "BadgeStore#setRevenueAddress: INVALID_ADDRESS");
+        revenueAddress = _revenueAddress;
+    }
+
+    function getRevenueAddress()
+        public
+        returns (address)
+    {
+        return revenueAddress;
     }
 
     function setBadgePrice(
@@ -30,10 +49,10 @@ contract BadgeStore is Badge {
     )
         public
         virtual
-        onlyOwner()
         existentTokenOnly(_badgeId)
+        onlyCreator(_badgeId)
     {
-        require(_price > 0, "TribeStore#setBadgePrice: ZERO_AMOUNT");
+        require(_price > 0, "TribeStore#setBadgePrice: INVALID_PRICE");
         _badgePrices[_badgeId] = _price;
     }
 
@@ -49,18 +68,19 @@ contract BadgeStore is Badge {
     }
 
     function purchase(
-        address _account,
         uint256 _badgeId,
         uint256 _amount
     )
         public
         virtual
         existentTokenOnly(_badgeId)
-        onlyOwner()
     {
-        require(_account != address(0), "TribeStore#purchase: ZERO_ADDRESS");
-        require(spn.balanceOf(_account) >= _badgePrices[_badgeId].mul(_amount), "TribeStore#purchase: INSUFFICIENT_BALANCE");
-        super.mint(_account, _badgeId, _amount, "");
-        spn.transferFrom(_account, revenueAddress, _amount);
+        require(_amount > 0, "TribeStore#purchase: INVALID_AMOUNT");
+        uint256 spnAmount = _badgePrices[_badgeId].mul(_amount);
+        uint256 feeAmount = spnAmount.mul(fee).div(100);
+        require(spn.balanceOf(_msgSender()) >= spnAmount, "TribeStore#purchase: INSUFFICIENT_FUNDS");
+        super.mint(_msgSender(), _badgeId, _amount, "");
+        spn.transferFrom(_msgSender(), revenueAddress, feeAmount);
+        spn.transferFrom(_msgSender(), getCreator(_badgeId), spnAmount.sub(feeAmount));
     }
 }

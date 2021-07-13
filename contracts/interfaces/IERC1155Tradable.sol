@@ -49,7 +49,6 @@ interface IERC1155Tradable is IERC1155 {
     function create(
         address _initialOwner,
         uint256 _initialSupply,
-        string calldata _uri,
         bytes calldata _data
     )
         external

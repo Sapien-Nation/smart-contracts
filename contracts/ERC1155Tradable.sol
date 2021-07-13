@@ -27,24 +27,24 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     { }
 
     /**
-    * @dev Require msg.sender to be the creator of the token id
+    * @dev Require _msgSender() to be the creator of the token id
     */
-    modifier creatorOnly(
+    modifier onlyCreator(
         uint256 _id
     )
     {
-        require(_creators[_id] == msg.sender, "ERC1155Tradable#creatorOnly: CALLER_NO_CREATOR");
+        require(_creators[_id] == _msgSender(), "ERC1155Tradable#onlyCreator: CALLER_NO_CREATOR");
         _;
     }
 
     /**
-    * @dev Require msg.sender to own more than 0 of the token id
+    * @dev Require _msgSender() to own at least 1 token
     */
-    modifier ownersOnly(
+    modifier tokenOwnerOnly(
         uint256 _id
     )
     {
-        require(balanceOf(msg.sender, _id) > 0, "ERC1155Tradable#ownersOnly: CALLER_NO_TOKEN_OWNER");
+        require(balanceOf(_msgSender(), _id) > 0, "ERC1155Tradable#tokenOwnerOnly: CALLER_NO_TOKEN_OWNER");
         _;
     }
 
@@ -72,6 +72,16 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
         return _tokenSupply[_id];
     }
 
+    function getCreator(
+        uint256 _id
+    )
+        public
+        view
+        returns (address)
+    {
+        return _creators[_id];
+    }
+
 //   /**
 //    * @dev Will update the base URL of token's URI
 //    * @param _newBaseMetadataURI New base URL of token's URI
@@ -86,30 +96,22 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     * @dev Creates a new token type and assigns _initialSupply to an address
     * @param _initialOwner address of the first owner of the token
     * @param _initialSupply amount to supply the first owner
-    * @param _uri Optional URI for this token type
     * @param _data Data to pass if receiver is contract
     * @return The newly created token ID
     */
     function create(
         address _initialOwner,
         uint256 _initialSupply,
-        string memory _uri,
         bytes memory _data
     )
         public
         virtual
         override
-        onlyOwner
         returns (uint256)
     {
         _tokenID.increment();
         uint256 id = _tokenID.current();
-        _creators[id] = msg.sender;
-
-        if (bytes(_uri).length > 0) {
-            emit URI(_uri, id);
-        }
-
+        _creators[id] = _msgSender();
         _mint(_initialOwner, id, _initialSupply, _data);
         _tokenSupply[id] = _initialSupply;
         return id;
@@ -131,7 +133,7 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
         public
         virtual
         override
-        creatorOnly(_id)
+        onlyCreator(_id)
     {
         _mint(_to, _id, _quantity, _data);
         _tokenSupply[_id] = _tokenSupply[_id].add(_quantity);
@@ -156,7 +158,7 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     {
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
-            require(_creators[id] == msg.sender, "ERC1155Tradable#mintBatch: ONLY_CREATOR_ALLOWED");
+            require(_creators[id] == _msgSender(), "ERC1155Tradable#mintBatch: ONLY_CREATOR_ALLOWED");
             uint256 quantity = _quantities[i];
             _tokenSupply[id] = _tokenSupply[id].add(quantity);
         }
@@ -169,8 +171,8 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     )
         public
         override
+        onlyOwner
     {
-        require(_creators[_id] == _msgSender(), "ERC1155Tradable#setCreator: CALLER_NO_CREATOR");
         require(_to != address(0), "ERC1155Tradable#setCreator: INVALID_ADDRESS");
         _setCreator(_to, _id);
     }
@@ -184,11 +186,12 @@ contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     )
         public
         override
+        onlyOwner
     {
         require(_to != address(0), "ERC1155Tradable#setCreatorBatch: INVALID_ADDRESS");
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
-            require(_creators[id] == msg.sender, "ERC1155Tradable#setCreatorBatch: CALLER_NO_CREATOR");
+            require(_creators[id] == _msgSender(), "ERC1155Tradable#setCreatorBatch: CALLER_NO_CREATOR");
             _setCreator(_to, id);
         }
     }
