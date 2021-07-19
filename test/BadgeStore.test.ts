@@ -1,10 +1,10 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
+import { ethers } from 'hardhat';
+import { expect } from 'chai';
 
 describe('BadgeStore', () => {
   let BadgeStore, ERC20Mock;
-  let badgeStore, spn;
-  let owner, addr1, addr2;
+  let badgeStore: any, spn: any;
+  let owner: any, addr1: any, addr2: any;
 
   before(async () => {
     [owner, addr1, addr2] = await ethers.getSigners();
