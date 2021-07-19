@@ -49,7 +49,7 @@ contract EIP712MetaTransaction is EIP712Base {
         (bool success, bytes memory returnData) = address(this).call(abi.encodePacked(functionSignature, userAddress));
 
         require(success, "Function call not successful");
-        emit MetaTransactionExecuted(userAddress, msg.sender, functionSignature);
+        emit MetaTransactionExecuted(userAddress, payable(msg.sender), functionSignature);
         return returnData;
     }
 
