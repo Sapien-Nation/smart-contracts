@@ -200,8 +200,10 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         _tokenID.increment();
         uint256 id = _tokenID.current();
         _creators[id] = msgSender();
-        super._mint(_initialOwner, id, _initialSupply, _data);
-        _tokenSupply[id] = _initialSupply;
+        if (_initialOwner != address(0)) {
+            super._mint(_initialOwner, id, _initialSupply, _data);
+            _tokenSupply[id] = _initialSupply;
+        }
         return id;
     }
 

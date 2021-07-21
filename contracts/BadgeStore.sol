@@ -10,70 +10,73 @@ import "./interfaces/IBadgeStore.sol";
 contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
     using SafeMath for uint256;
 
-    IERC20 spn;
+    struct BadgeProp {
+        address admin;
+        uint256 price; // priced in SPN
+    }
 
-    address revenueAddress;
+    // SPN token address
+    IERC20 public spn;
+    // Address that collects platform fee.
+    address public revenueAddress;
+    // Platform governance account.
+    address public governance;
 
-    uint256 fee = 5; // 100 percentage
+    uint256 public platformFee = 5; // 100 percentage
 
-    mapping(uint256 => uint256) private _badgePrices;
+    mapping(uint256 => BadgeProp) private _badgeProps;
 
-    event BadgeCreated(address indexed account, uint256 badgeId);
+    event BadgeCreate(address indexed admin, uint256 badgeId);
 
-    event BadgePurchased(address indexed account, uint256 badgeId, uint256 amount);
+    event BadgePurchase(address indexed recipient, uint256 badgeId, uint256 amount);
+
+    event BadgeGrant(address indexed recipient, uint256 badgeId, uint256 amount);
 
     constructor(
         string memory _name,
         string memory _uri,
         string memory _version,
         IERC20 _spn,
-        address _revenueAddress
+        address _revenueAddress,
+        address _governance
     )
         ERC1155Tradable(_name, _uri, _version)
     {
         spn = _spn;
         revenueAddress = _revenueAddress;
-    }
-
-    /**
-     * @dev Return revenue address.
-     */
-    function getRevenueAddress()
-        external
-        view
-        override
-        returns (address)
-    {
-        return revenueAddress;
+        governance = _governance;
     }
 
     /**
      * @dev Return price of badge token.
      */
-    function getBadgePrice(
+    function badgePrice(
         uint256 _badgeId
     )
-        external
+        public
         virtual
         override
         view
         existentTokenOnly(_badgeId)
         returns (uint256)
     {
-        return _badgePrices[_badgeId];
+        return _badgeProps[_badgeId].price;
     }
 
     /**
-     * @dev Return platform fee.
+     * @dev Return admin address of badge token.
      */
-    function getFee()
-        external
+    function badgeAdminAddress(
+        uint256 _badgeId
+    )
+        public
         virtual
         override
         view
-        returns (uint256)
+        existentTokenOnly(_badgeId)
+        returns (address)
     {
-        return fee;
+        return _badgeProps[_badgeId].admin;
     }
 
     /**
@@ -91,6 +94,20 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
     }
 
     /**
+     * @dev Set platform governance address.
+     */
+    function setGovernance(
+        address _governance
+    )
+        external
+        override
+        onlyOwner
+    {
+        require(_governance != address(0), "BadgeStore#setGovernance: INVALID_ADDRESS");
+        governance = _governance;
+    }
+
+    /**
      * @dev Set price of badge token.
      */
     function setBadgePrice(
@@ -101,31 +118,48 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
         override
         virtual
         existentTokenOnly(_badgeId)
-        onlyCreator(_badgeId)
     {
+        require(msgSender() == badgeAdminAddress(_badgeId), "BadgeStore#setBadgePrice: CALLER_NO_BADGE_ADMIN");
         _setBadgePrice(_badgeId, _price);
     }
 
     /**
      * @dev Set platform fee.
      */
-    function setFee(
-        uint256 _fee
+    function setPlatformFee(
+        uint256 _platformFee
     )
         external
         virtual
         override
         onlyOwner
     {
-        require(_fee > 0, "BadgeStore#setFee: INVALID_FEE");
-        fee = _fee;
+        platformFee = _platformFee;
     }
 
     /**
-     * @dev Create badge.
-     * msgSender() becomes badge creator.
+     * @dev Return admin address of badge token.
+     */
+    function setBadgeAdminAddress(
+        address _badgeAdmin,
+        uint256 _badgeId
+    )
+        public
+        virtual
+        override
+        existentTokenOnly(_badgeId)
+    {
+        require(msgSender() == governance, "BadgeStore#setBadgeAdminAddress: CALLER_NO_GOVERNANCE");
+        _setBadgeAdminAddress(_badgeAdmin, _badgeId);
+    }
+
+    /**
+     * @dev Create new badge type.
+     * Accessible only by governance.
+     * `_badgeAdmin` cannot be the zero address.
      */
     function createBadge(
+        address _badgeAdmin,
         uint256 _price
     )
         external
@@ -133,10 +167,11 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
         override
         returns (uint256)
     {
-        require(_price > 0, "BadgeStore#createBadge: INVALID_PRICE");
-        uint256 badgeId = _create(msgSender(), 1, "");
-        emit BadgeCreated(msgSender(), badgeId);
+        require(msgSender() == governance, "BadgeStore#createBadge: CALLER_NO_GOVERNANCE");
+        uint256 badgeId = _create(_badgeAdmin, 1, "");
+        emit BadgeCreate(_badgeAdmin, badgeId);
         _setBadgePrice(badgeId, _price);
+        _setBadgeAdminAddress(_badgeAdmin, badgeId);
         return badgeId;
     }
 
@@ -155,6 +190,29 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
     {
         require(_amount > 0, "BadgeStore#purchaseBadge: INVALID_AMOUNT");
         _purchaseBadge(msgSender(), _badgeId, _amount);
+    }
+
+    /**
+     * @dev Grant badge for free.
+     * Accessible only by badge token admin.
+     * `_to` cannot be the zero address.
+     */
+    function grantBadge(
+        address _to,
+        uint256 _badgeId,
+        uint256 _amount
+    )
+        external
+        virtual
+        override
+        existentTokenOnly(_badgeId)
+        nonReentrant
+    {
+        require(msgSender() == badgeAdminAddress(_badgeId), "BadgeStore#grantBadge: CALLER_NO_BADGE_ADMIN");
+        require(_to != address(0), "BadgeStore#grantBadge: INVALID_ADDRESS");
+        require(_amount > 0, "BadgeStore#grantBadge: INVALID_AMOUNT");
+        _mint(_to, _badgeId, _amount, "");
+        emit BadgeGrant(_to, _badgeId, _amount);
     }
 
     /**
@@ -186,13 +244,15 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
         internal
         virtual
     {
-        uint256 spnAmount = _badgePrices[_badgeId].mul(_amount);
-        uint256 feeAmount = spnAmount.mul(fee).div(100);
-        require(spn.balanceOf(_account) >= spnAmount, "BadgeStore#_purchaseBadge: INSUFFICIENT_FUNDS");
-        spn.transferFrom(_account, revenueAddress, feeAmount);
-        spn.transferFrom(_account, creator(_badgeId), spnAmount.sub(feeAmount));
+        if (_badgeProps[_badgeId].price > 0) {
+            uint256 spnAmount = _badgeProps[_badgeId].price.mul(_amount);
+            uint256 feeAmount = spnAmount.mul(platformFee).div(100);
+            require(spn.balanceOf(_account) >= spnAmount, "BadgeStore#_purchaseBadge: INSUFFICIENT_FUNDS");
+            spn.transferFrom(_account, revenueAddress, feeAmount);
+            spn.transferFrom(_account, badgeAdminAddress(_badgeId), spnAmount.sub(feeAmount));
+        }
         _mint(_account, _badgeId, _amount, "");
-        emit BadgePurchased(_account, _badgeId, _amount);
+        emit BadgePurchase(_account, _badgeId, _amount);
     }
 
     /**
@@ -205,7 +265,16 @@ contract BadgeStore is ERC1155Tradable, ReentrancyGuard, IBadgeStore {
         internal
         virtual
     {
-        require(_price > 0, "BadgeStore#_setBadgePrice: INVALID_PRICE");
-        _badgePrices[_badgeId] = _price;
+        _badgeProps[_badgeId].price = _price;
+    }
+
+    function _setBadgeAdminAddress(
+        address _badgeAdmin,
+        uint256 _badgeId
+    )
+        internal
+        virtual
+    {
+        _badgeProps[_badgeId].admin = _badgeAdmin;
     }
 }
