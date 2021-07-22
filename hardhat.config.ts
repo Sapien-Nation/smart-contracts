@@ -36,6 +36,10 @@ const config: HardhatUserConfig = {
     revenueAddress: {
       default: 2,
       'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
+    },
+    governance: {
+      default: 3,
+      'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
     }
   },
 };
