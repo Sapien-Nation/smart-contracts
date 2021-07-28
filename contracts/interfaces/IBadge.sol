@@ -10,8 +10,6 @@ interface IBadge is IERC1155Tradable {
     function create(
         address _initialOwner,
         uint256 _initialSupply,
-        uint256 _tribeId,
-        uint256 _price,
         string calldata _uri,
         bytes calldata _data
     )
