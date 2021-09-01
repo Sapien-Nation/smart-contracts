@@ -6,31 +6,28 @@ describe('BadgeStore', () => {
   let badgeStore: any, spn: any;
   let owner: any, revenue: any, governance: any, addr1: any, addr2: any, addr3: any;
 
-  before(async () => {
-    [owner, revenue, governance, addr1, addr2, addr3] = await ethers.getSigners();
-    console.log('owner:', owner.address);
-    console.log('revenue:', revenue.address);
-    console.log('governance:', governance.address);
-    console.log('addr1:', addr1.address);
-    console.log('addr2:', addr2.address);
-    BadgeStore = await ethers.getContractFactory('BadgeStore');
-    ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-    spn = await ERC20Mock.deploy('SPN', 'SPN');
-    await spn.deployed();
-    badgeStore = await BadgeStore.deploy('BadgeStore', 'https://sapien.network/badges/{id}.json', 'v3', spn.address, revenue.address, governance.address);
-    await badgeStore.deployed();
-    console.log('Deployed to:', badgeStore.address);
-
-    await spn.mint(addr1.address, ethers.utils.parseEther('100'));
-    await spn.connect(addr1).approve(badgeStore.address, ethers.utils.parseEther('100'));
-    await spn.mint(addr2.address, ethers.utils.parseEther('100'));
-    await spn.connect(addr2).approve(badgeStore.address, ethers.utils.parseEther('100'));
-    await spn.mint(addr3.address, ethers.utils.parseEther('100'));
-    await spn.connect(addr3).approve(badgeStore.address, ethers.utils.parseEther('100'));
-  });
-
   describe('createBadge', async () => {
     it('governance should createBadge', async () => {
+      [owner, revenue, governance, addr1, addr2, addr3] = await ethers.getSigners();
+      console.log('owner:', owner.address);
+      console.log('revenue:', revenue.address);
+      console.log('governance:', governance.address);
+      console.log('addr1:', addr1.address);
+      console.log('addr2:', addr2.address);
+      BadgeStore = await ethers.getContractFactory('BadgeStore');
+      ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+      spn = await ERC20Mock.deploy('SPN', 'SPN');
+      await spn.deployed();
+      badgeStore = await BadgeStore.deploy('BadgeStore', 'https://sapien.network/badges/{id}.json', 'v3', spn.address, revenue.address, governance.address);
+      await badgeStore.deployed();
+      console.log('Deployed to:', badgeStore.address);
+
+      await spn.mint(addr1.address, ethers.utils.parseEther('100'));
+      await spn.connect(addr1).approve(badgeStore.address, ethers.utils.parseEther('100'));
+      await spn.mint(addr2.address, ethers.utils.parseEther('100'));
+      await spn.connect(addr2).approve(badgeStore.address, ethers.utils.parseEther('100'));
+      await spn.mint(addr3.address, ethers.utils.parseEther('100'));
+      await spn.connect(addr3).approve(badgeStore.address, ethers.utils.parseEther('100'));
       await expect(badgeStore.connect(governance).createBadge(addr1.address, ethers.utils.parseEther('5')))
         .to.emit(badgeStore, 'BadgeCreate')
         .withArgs(addr1.address, 1);
@@ -85,7 +82,7 @@ describe('BadgeStore', () => {
     it('should purchaseBadgeBatch', async () => {
       await badgeStore.connect(addr3).purchaseBadgeBatch([ethers.BigNumber.from(1), ethers.BigNumber.from(2)], [ethers.BigNumber.from(3), ethers.BigNumber.from(6)]);
       expect(await spn.balanceOf(addr3.address)).to.equal(ethers.utils.parseEther('25'));
-      expect(await badgeStore.totalSupply(ethers.BigNumber.from(1))).to.equal(ethers.BigNumber.from(10));
+      expect(await badgeStore.tokenSupply(ethers.BigNumber.from(1))).to.equal(ethers.BigNumber.from(10));
     });
     describe('reverts if', async () => {
       it('params length mismatch', async () => {

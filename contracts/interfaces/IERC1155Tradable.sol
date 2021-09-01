@@ -5,26 +5,6 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 interface IERC1155Tradable is IERC1155 {
     /**
-     * @dev Returns the total quantity for a token ID.
-     */
-    function totalSupply(
-        uint256 _id
-    )
-        external
-        view
-        returns (uint256);
-
-    /**
-     * @dev Return creator address for token.
-     */
-    function creator(
-        uint256 _id
-    )
-        external
-        view
-        returns (address);
-
-    /**
      * @dev Returns whether the specified token exists by checking to see if it has a creator
      */
     function exists(

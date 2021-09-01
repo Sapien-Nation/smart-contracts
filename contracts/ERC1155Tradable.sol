@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/IERC1155Tradable.sol";
 import "./metatx-standard/EIP712MetaTransaction.sol";
 
@@ -14,12 +12,9 @@ import "./metatx-standard/EIP712MetaTransaction.sol";
  like exists() and totalSupply()
  */
 contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tradable {
-    using SafeMath for uint256;
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _tokenID;
-    mapping(uint256 => address) private _creators;
-    mapping(uint256 => uint256) private _tokenSupply;
+    uint256 public tokenID;
+    mapping(uint256 => address) public creator;
+    mapping(uint256 => uint256) public tokenSupply;
 
     constructor(
         string memory _name,
@@ -37,7 +32,7 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         uint256 _id
     )
     {
-        require(_creators[_id] == msgSender(), "ERC1155Tradable#onlyCreator: CALLER_NO_CREATOR");
+        require(creator[_id] == msgSender(), "ERC1155Tradable#onlyCreator: CALLER_NO_CREATOR");
         _;
     }
 
@@ -64,34 +59,6 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
     }
 
     /**
-     * @dev See {IERC1155Tradable-totalSupply}.
-     */
-    function totalSupply(
-        uint256 _id
-    )
-        public
-        override
-        view
-        returns (uint256)
-    {
-        return _tokenSupply[_id];
-    }
-
-    /**
-     * @dev See {IERC1155Tradable-creator}.
-     */
-    function creator(
-        uint256 _id
-    )
-        public
-        override
-        view
-        returns (address)
-    {
-        return _creators[_id];
-    }
-
-    /**
      * @dev See {IERC1155Tradable-exists}.
      */
     function exists(
@@ -103,7 +70,7 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         virtual
         returns (bool)
     {
-        return _creators[_id] != address(0);
+        return creator[_id] != address(0);
     }
 
     /**
@@ -197,12 +164,11 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         virtual
         returns (uint256)
     {
-        _tokenID.increment();
-        uint256 id = _tokenID.current();
-        _creators[id] = msgSender();
+        uint256 id = _newTokenId();
+        creator[id] = msgSender();
         if (_initialOwner != address(0)) {
             super._mint(_initialOwner, id, _initialSupply, _data);
-            _tokenSupply[id] = _initialSupply;
+            tokenSupply[id] = _initialSupply;
         }
         return id;
     }
@@ -225,7 +191,7 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         existentTokenOnly(_id)
     {
         super._mint(_to, _id, _quantity, _data);
-        _tokenSupply[_id] = _tokenSupply[_id].add(_quantity);
+        tokenSupply[_id] += _quantity;
     }
 
     /**
@@ -248,7 +214,7 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
             uint256 quantity = _quantities[i];
-            _tokenSupply[id] = _tokenSupply[id].add(quantity);
+            tokenSupply[id] += quantity;
         }
     }
 
@@ -263,6 +229,13 @@ contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tra
     )
         internal
     {
-        _creators[_id] = _to;
+        creator[_id] = _to;
+    }
+
+    function _newTokenId()
+        internal
+        returns (uint256)
+    {
+        return ++tokenID;
     }
 }
