@@ -36,7 +36,7 @@ const config: HardhatUserConfig = {
     spn: {
       default: 1,
       'matic': '0x8174Ab11EEd70297311f7318a71d9e9f48466Fff',
-      'mainnet': '0x8174Ab11EEd70297311f7318a71d9e9f48466Fff'
+      'mainnet': '0x3Cd92Be3Be24daf6D03c46863f868F82D74905bA'
     },
     revenueAddress: {
       default: 2,
