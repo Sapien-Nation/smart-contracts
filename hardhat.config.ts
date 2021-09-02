@@ -16,6 +16,10 @@ const config: HardhatUserConfig = {
     matic: {
       url: "https://rpc-mumbai.maticvigil.com",
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
+    },
+    mainnet: {
+      url: "https://polygon-rpc.com",
+      accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     }
   },
   solidity: {
@@ -31,15 +35,18 @@ const config: HardhatUserConfig = {
     deployer: 0,
     spn: {
       default: 1,
-      'matic': '0x8174Ab11EEd70297311f7318a71d9e9f48466Fff'
+      'matic': '0x8174Ab11EEd70297311f7318a71d9e9f48466Fff',
+      'mainnet': '0x3Cd92Be3Be24daf6D03c46863f868F82D74905bA'
     },
     revenueAddress: {
       default: 2,
-      'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
+      'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A',
+      'mainnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
     },
     governance: {
       default: 3,
-      'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
+      'matic': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A',
+      'mainnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
     }
   },
 };

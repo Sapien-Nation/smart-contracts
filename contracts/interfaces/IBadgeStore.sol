@@ -11,7 +11,7 @@ interface IBadgeStore is IERC1155Tradable {
         view
         returns (uint256);
 
-    function badgeAdminAddress(
+    function badgeAdmin(
         uint256 _badgeId
     )
         external
@@ -39,7 +39,7 @@ interface IBadgeStore is IERC1155Tradable {
     )
         external;
 
-    function setBadgeAdminAddress(
+    function setBadgeAdmin(
         address _badgeAdmin,
         uint256 _badgeId
     )
