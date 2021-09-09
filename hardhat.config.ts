@@ -41,12 +41,12 @@ const config: HardhatUserConfig = {
     revenueAddress: {
       default: 2,
       'testnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A',
-      'mainnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
+      'mainnet': '0x20e4c1b3c5513b5270a3e87ce75379244b361829'
     },
     governance: {
       default: 3,
       'testnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A',
-      'mainnet': '0xeF60a8E421639Fc8A63b98118c5b780579b1009A'
+      'mainnet': '0x9ba109487226cb29e54d1fc55f5e55ebff3f0bfe'
     }
   },
 };
