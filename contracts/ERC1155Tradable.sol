@@ -2,16 +2,15 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "./interfaces/IERC1155Tradable.sol";
-import "./metatx-standard/EIP712MetaTransaction.sol";
+import "./openzeppelin/token/ERC1155/ERC1155.sol";
 
 /**
  * @title ERC1155Tradable
  * ERC1155Tradable - ERC1155 contract that whitelists an operator address, has create and mint functionality, and supports useful standards from OpenZeppelin,
  like exists() and totalSupply()
  */
-contract ERC1155Tradable is ERC1155, Ownable, EIP712MetaTransaction, IERC1155Tradable {
+contract ERC1155Tradable is ERC1155, Ownable, IERC1155Tradable {
     uint256 public tokenID;
     mapping(uint256 => address) public creator;
     mapping(uint256 => uint256) public tokenSupply;
