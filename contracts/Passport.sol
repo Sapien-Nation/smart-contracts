@@ -66,32 +66,60 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     }
 
     // Setters
+    /**
+     * @dev Set Role Manager contract address
+     * Accessible by only `owner`
+     * `_roleManager` must not be zero address
+     */
     function setRoleManager(address _roleManager) external onlyOwner {
         require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
         roleManager = IRoleManager(_roleManager);
     }
 
+    /**
+     * @dev Set `feeTreasury` address
+     * Accessible by only Sapien governance
+     * `_feeTreasury` must not be zero address
+     */
     function setFeeTreasury(address _feeTreasury) external onlyGovernance {
         require(_feeTreasury != address(0), "Passport: FEE_TREASURY_ADDRESS_INVALID");
         feeTreasury = _feeTreasury;
     }
 
-    // TODO check
+    /**
+     * @dev Set `maxPurchase` address
+     * Accessible by only Sapien governance
+     * `_maxPurchase` must not be zero
+     */
     function setMaxPurchase(uint16 _maxPurchase) external onlyGovernance {
         require(_maxPurchase > 0, "Passport: MAX_PURCHASE_INVALID");
         maxPurchase = _maxPurchase;
     }
 
+    /**
+     * @dev Set `firstPriceETH` address
+     * Accessible by only Sapien governance
+     * `_firstPriceETH` must not be zero
+     */
     function setFirstPriceETH(uint16 _firstPriceETH) external onlyGovernance {
         require(_firstPriceETH > 0, "Passport: FIRST_PRICE_INVALID");
         firstPriceETH = _firstPriceETH;
     }
 
+    /**
+     * @dev Set `feeBps` address
+     * Accessible by only Sapien governance
+     * `_feeBps` must not be zero
+     */
     function setFee(uint16 _feeBps) external onlyGovernance {
         require(_feeBps > 0, "Passport: FEE_INVALID");
         feeBps = _feeBps;
     }
 
+    /**
+     * @dev Set token URI
+     * Accessible by only Sapien governance
+     */
     function setTokenURI(
         uint256 _tokenID,
         string memory _tokenURI
@@ -99,12 +127,24 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         super._setTokenURI(_tokenID, _tokenURI);
     }
 
+    /**
+     * @dev Sign the passport
+     * Signed passports are not for sale
+     * Accessible by only Sapien governance
+     * `_tokenID` must exist
+     */
     function sign(uint256 _tokenID) external onlyGovernance {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
         passports[_tokenID].isSigned = true;
         passports[_tokenID].isOpenForSale = false;
     }
 
+    /**
+     * @dev Set passport price
+     * Accessible by only passport owner
+     * `_tokenID` must exist
+     * `_tokenID` must not be signed
+     */
     function setPrice(
         uint256 _tokenID,
         uint256 _price
@@ -119,6 +159,11 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     }
 
     // Create
+    /**
+     * @dev Create new passports
+     * Accessible by only Sapien governance
+     * Sapien governance become passport `creator`
+     */
     function create(string[] memory _uris) external onlyGovernance {
         for (uint256 i = 0; i < _uris.length; i++) {
             uint256 newID = ++passportID;
@@ -133,6 +178,12 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     }
 
     // Sale
+    /**
+     * @dev Purchase `_tokenID` at the first sale
+     * Transaction should hold enough ETH in `msg.value`
+     * Collect fee and send to `feeTreasury`
+     * `_tokenID` must exist
+     */
     function purchase(uint256 _tokenID) external payable {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
         PassportInfo memory p = passports[_tokenID];
@@ -145,6 +196,12 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
     }
 
+    /**
+     * @dev Put `_tokenID` up for sale
+     * Accessible by only passport owner
+     * `_tokenID` must exist
+     * Passport must not be signed
+     */
     function putForSale(
         uint256 _tokenID,
         uint256 _price
@@ -159,6 +216,13 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         emit PutForSale(_tokenID, _price);
     }
 
+    /**
+     * @dev Purchase `_tokenID` at the secondary sale
+     * Transaction should hold enough ETH in `msg.value`
+     * Collect fee and send to `feeTreasury`
+     * `_tokenID` must exist
+     * `_tokenID` must be open for sale
+     */
     function purchaseSecondary(uint256 _tokenID) external payable {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
         PassportInfo storage p = passports[_tokenID];
@@ -172,5 +236,16 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
 
         p.isOpenForSale = false;
         super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
+    }
+
+    /**
+     * @dev Signed passports are not transferable
+     */
+    function _beforeTokenTransfer(
+        address _from,
+        address _to,
+        uint256 _tokenID
+    ) internal override {
+        require(!passports[_tokenID].isSigned, "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
     }
 }
