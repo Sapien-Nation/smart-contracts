@@ -18,9 +18,12 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     uint256 public firstPriceETH = 0.25 ether;
     // Fee in BPS
     uint16 public feeBps = 500;
+    // Royalty fee in BPS
+    uint16 public royaltyFeeBps = 300;
 
     struct PassportInfo {
         address creator;
+        address initialOwner; // owner at the first sale
         uint256 priceETH;
         bool isSigned;
         bool isOpenForSale;
@@ -117,6 +120,16 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     }
 
     /**
+     * @dev Set `royaltyFeeBps` address
+     * Accessible by only Sapien governance
+     * `_royaltyFeeBps` must not be zero
+     */
+    function setRoyaltyFee(uint16 _royaltyFeeBps) external onlyGovernance {
+        require(_royaltyFeeBps > 0, "Passport: ROYALTY_FEE_INVALID");
+        royaltyFeeBps = _royaltyFeeBps;
+    }
+
+    /**
      * @dev Set token URI
      * Accessible by only Sapien governance
      */
@@ -186,13 +199,14 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
      */
     function purchase(uint256 _tokenID) external payable {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-        PassportInfo memory p = passports[_tokenID];
+        PassportInfo storage p = passports[_tokenID];
         uint256 fee = p.priceETH * feeBps / 10000;
-        require(msg.value == fee + p.priceETH, "Passport: INSUFFICIENT_FUNDS");
+        require(msg.value == p.priceETH + fee, "Passport: INSUFFICIENT_FUNDS");
         require(firstPurchases[_msgSender()] + 1 <= maxPurchase, "Passport: FIRST_SALE_PURCHASE_LIMIT_EXCEEDED");
-        (bool success, ) = payable(feeTreasury).call{value: fee}("");
-        require(success, "Passport: FEE_TRANSFER_FAILED");
+        (bool feeSent, ) = payable(feeTreasury).call{value: fee}("");
+        require(feeSent, "Passport: FEE_TRANSFER_FAILED");
         firstPurchases[_msgSender()]++;
+        p.initialOwner = _msgSender();
         super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
     }
 
@@ -219,6 +233,7 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     /**
      * @dev Purchase `_tokenID` at the secondary sale
      * Transaction should hold enough ETH in `msg.value`
+     * Collect royalty fee and send to first owner
      * Collect fee and send to `feeTreasury`
      * `_tokenID` must exist
      * `_tokenID` must be open for sale
@@ -227,12 +242,15 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
         PassportInfo storage p = passports[_tokenID];
         require(p.isOpenForSale, "Passport: PASSPORT_CLOSED_FOR_SALE");
+        uint256 royaltyFee = p.priceETH * royaltyFeeBps / 10000;
         uint256 fee = p.priceETH * feeBps / 10000;
-        require(msg.value == fee + p.priceETH, "Passport: INSUFFICIENT_FUNDS");
-        (bool success, ) = payable(feeTreasury).call{value: fee}("");
-        require(success, "Passport: FEE_TRANSFER_FAILED");
-        (bool success1, ) = payable(ownerOf(_tokenID)).call{value: p.priceETH}("");
-        require(success1, "Passport: PRICE_TRANSFER_FAILED");
+        require(msg.value == p.priceETH + royaltyFee + fee, "Passport: INSUFFICIENT_FUNDS");
+        (bool royaltyFeeSent, ) = payable(p.initialOwner).call{value: royaltyFee}("");
+        require(royaltyFeeSent, "Passport: ROYALTY_FEE_TRANSFER_FAILED");
+        (bool feeSent, ) = payable(feeTreasury).call{value: fee}("");
+        require(feeSent, "Passport: FEE_TRANSFER_FAILED");
+        (bool priceSent, ) = payable(ownerOf(_tokenID)).call{value: p.priceETH}("");
+        require(priceSent, "Passport: PRICE_TRANSFER_FAILED");
 
         p.isOpenForSale = false;
         super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
