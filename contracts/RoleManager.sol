@@ -6,8 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract RoleManager is AccessControl, Ownable {
     bytes32 public constant GOVERNANCE_ROLE = keccak256("GOVERNANCE_ROLE");
-
+    // Sapien governance address
     address public governance;
+
+    event GovernanceSet(address prev, address next);
 
     constructor(address _governance) {
         require(_governance != address(0), "RoleManager: GOVERNANCE_ZERO_ADDRESS");
@@ -17,10 +19,13 @@ contract RoleManager is AccessControl, Ownable {
         _setupRole(GOVERNANCE_ROLE, _governance);
     }
 
-    function setGovernance(address _governance) public onlyOwner {
+    function setGovernance(address _governance) external onlyOwner {
         require(_governance != address(0), "RoleManager: GOVERNANCE_ZERO_ADDRESS");
-        revokeRole(GOVERNANCE_ROLE, governance);
+        address currentGov = governance;
+        revokeRole(GOVERNANCE_ROLE, currentGov);
         governance = _governance;
         grantRole(GOVERNANCE_ROLE, _governance);
+
+        emit GovernanceSet(currentGov, _governance);
     }
 }
