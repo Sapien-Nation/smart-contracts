@@ -13,13 +13,13 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     // Fee collector address
     address public feeTreasury;
     // Maximum number of passports that one user can purchase at the first sale
-    uint16 public maxPurchase = 5;
+    uint16 public maxPurchase;
     // Passport token price in ETH
-    uint256 public firstPriceETH = 0.25 ether;
+    uint256 public firstPriceETH;
     // Fee in BPS
-    uint16 public feeBps = 500;
+    uint16 public feeBps;
     // Royalty fee in BPS
-    uint16 public royaltyFeeBps = 300;
+    uint16 public royaltyFeeBps;
 
     struct PassportInfo {
         address creator;
@@ -56,6 +56,10 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         require(_feeTreasury != address(0), "Passport: FEE_TREASURY_ADDRESS_INVALID");
         roleManager = IRoleManager(_roleManager);
         feeTreasury = _feeTreasury;
+        maxPurchase = 5;
+        firstPriceETH = 0.25 ether;
+        feeBps = 500;
+        royaltyFeeBps = 300;
     }
 
     // TODO check msg.sender
