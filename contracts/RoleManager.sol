@@ -12,7 +12,7 @@ contract RoleManager is AccessControl, Ownable {
     event GovernanceSet(address prev, address next);
 
     constructor(address _governance) {
-        require(_governance != address(0), "RoleManager: GOVERNANCE_ZERO_ADDRESS");
+        require(_governance != address(0), "RoleManager: GOVERNANCE_ADDRESS_INVALID");
         governance = _governance;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -20,7 +20,7 @@ contract RoleManager is AccessControl, Ownable {
     }
 
     function setGovernance(address _governance) external onlyOwner {
-        require(_governance != address(0), "RoleManager: GOVERNANCE_ZERO_ADDRESS");
+        require(_governance != address(0), "RoleManager: GOVERNANCE_ADDRESS_INVALID");
         address currentGov = governance;
         revokeRole(GOVERNANCE_ROLE, currentGov);
         governance = _governance;
