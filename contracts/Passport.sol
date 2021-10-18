@@ -3,68 +3,53 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IRoleManager.sol";
+import "./interfaces/IPassport.sol";
 
-contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
+contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable, PausableUpgradeable {
     // Latest passport id starting from 1
     uint256 passportID;
     // Role Manager contract address
     IRoleManager roleManager;
-    // Fee collector address
-    address public feeTreasury;
     // Maximum number of passports that one user can purchase at the first sale
-    uint16 public maxPurchase;
-    // Passport token price in ETH
-    uint256 public firstPriceETH;
-    // Fee in BPS
-    uint16 public feeBps;
-    // Royalty fee in BPS
-    uint16 public royaltyFeeBps;
+    uint16 public maxFirstPurchase;
+    // Public sale start date, 11/19/2021
+    uint256 public saleStartDate;
 
     struct PassportInfo {
         address creator;
-        address initialOwner; // owner at the first sale
         uint256 priceETH;
         bool isSigned;
         bool isOpenForSale;
     }
     // Passport ID => passport info
-    mapping(uint256 => PassportInfo) public passports;
+    mapping(uint256 => PassportInfo) public override passports;
     // address => number of passports at the first sale
     mapping(address => uint256) public firstPurchases;
 
-    event ETHReceived(address indexed sender, uint256 amount);
-    event PutForSale(uint256 indexed tokenID, uint256 price);
+    event Sign(uint256 indexed tokenID);
+    event OpenForSaleSet(uint256 indexed tokenID, bool isOpenForSale);
     event PriceSet(uint256 indexed tokenID, uint256 price);
+    event Mint(uint256 indexed tokenID, address indexed account, uint256 price);
 
     function initialize(
         string memory _name,
         string memory _symbol,
-        address _roleManager,
-        address _feeTreasury
+        address _roleManager
     ) public initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init();
-        __Passport_init_unchained(_roleManager, _feeTreasury);
+        __Passport_init_unchained(_roleManager);
     }
 
     function __Passport_init_unchained(
-        address _roleManager,
-        address _feeTreasury
+        address _roleManager
     ) internal initializer {
         require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
-        require(_feeTreasury != address(0), "Passport: FEE_TREASURY_ADDRESS_INVALID");
         roleManager = IRoleManager(_roleManager);
-        feeTreasury = _feeTreasury;
-        maxPurchase = 5;
-        firstPriceETH = 0.25 ether;
-        feeBps = 500;
-        royaltyFeeBps = 300;
-    }
-
-    // TODO check msg.sender
-    receive() external payable {
-        emit ETHReceived(_msgSender(), msg.value);
+        saleStartDate = 1637280000;
+        maxFirstPurchase = 5;
     }
 
     modifier onlyGovernance() {
@@ -78,59 +63,29 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
      * Accessible by only `owner`
      * `_roleManager` must not be zero address
      */
-    function setRoleManager(address _roleManager) external onlyOwner {
+    function setRoleManager(address _roleManager) external override onlyOwner {
         require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
         roleManager = IRoleManager(_roleManager);
     }
 
     /**
-     * @dev Set `feeTreasury` address
+     * @dev Set `saleStartDate`
      * Accessible by only Sapien governance
-     * `_feeTreasury` must not be zero address
+     * `_saleStartDate` must be greater than current timestamp
      */
-    function setFeeTreasury(address _feeTreasury) external onlyGovernance {
-        require(_feeTreasury != address(0), "Passport: FEE_TREASURY_ADDRESS_INVALID");
-        feeTreasury = _feeTreasury;
+    function setSaleStartDate(uint256 _saleStartDate) external onlyGovernance {
+        require(_saleStartDate > block.timestamp, "Passport: SALE_START_DATE_INVALID");
+        saleStartDate = _saleStartDate;
     }
 
     /**
-     * @dev Set `maxPurchase` address
+     * @dev Set `maxFirstPurchase` address
      * Accessible by only Sapien governance
      * `_maxPurchase` must not be zero
      */
-    function setMaxPurchase(uint16 _maxPurchase) external onlyGovernance {
+    function setMaxPurchase(uint16 _maxPurchase) external override onlyGovernance {
         require(_maxPurchase > 0, "Passport: MAX_PURCHASE_INVALID");
-        maxPurchase = _maxPurchase;
-    }
-
-    /**
-     * @dev Set `firstPriceETH` address
-     * Accessible by only Sapien governance
-     * `_firstPriceETH` must not be zero
-     */
-    function setFirstPriceETH(uint16 _firstPriceETH) external onlyGovernance {
-        require(_firstPriceETH > 0, "Passport: FIRST_PRICE_INVALID");
-        firstPriceETH = _firstPriceETH;
-    }
-
-    /**
-     * @dev Set `feeBps` address
-     * Accessible by only Sapien governance
-     * `_feeBps` must not be zero
-     */
-    function setFee(uint16 _feeBps) external onlyGovernance {
-        require(_feeBps > 0, "Passport: FEE_INVALID");
-        feeBps = _feeBps;
-    }
-
-    /**
-     * @dev Set `royaltyFeeBps` address
-     * Accessible by only Sapien governance
-     * `_royaltyFeeBps` must not be zero
-     */
-    function setRoyaltyFee(uint16 _royaltyFeeBps) external onlyGovernance {
-        require(_royaltyFeeBps > 0, "Passport: ROYALTY_FEE_INVALID");
-        royaltyFeeBps = _royaltyFeeBps;
+        maxFirstPurchase = _maxPurchase;
     }
 
     /**
@@ -140,7 +95,7 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     function setTokenURI(
         uint256 _tokenID,
         string memory _tokenURI
-    ) external onlyGovernance {
+    ) external override onlyGovernance {
         super._setTokenURI(_tokenID, _tokenURI);
     }
 
@@ -150,10 +105,12 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
      * Accessible by only Sapien governance
      * `_tokenID` must exist
      */
-    function sign(uint256 _tokenID) external onlyGovernance {
+    function sign(uint256 _tokenID) external override onlyGovernance {
         require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
         passports[_tokenID].isSigned = true;
         passports[_tokenID].isOpenForSale = false;
+
+        emit Sign(_tokenID);
     }
 
     /**
@@ -165,9 +122,8 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
     function setPrice(
         uint256 _tokenID,
         uint256 _price
-    ) external {
-        require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-        require(_msgSender() == ownerOf(_tokenID), "Passport: CALLER_NO_TOKEN_OWNER");
+    ) public override {
+        require(_msgSender() == ownerOf(_tokenID), "Passport: CALLER_NO_TOKEN_OWNER__ID_INVALID");
         PassportInfo storage p = passports[_tokenID];
         require(!p.isSigned, "Passport: PASSPORT_SIGNED");
         p.priceETH = _price;
@@ -175,99 +131,84 @@ contract Passport is OwnableUpgradeable, ERC721URIStorageUpgradeable {
         emit PriceSet(_tokenID, _price);
     }
 
-    // Create
     /**
-     * @dev Create new passports
+     * @dev Set passport price
+     * Accessible by only passport owner
+     * `_tokenID` must exist
+     * `_tokenID` must not be signed
+     */
+    function setOpenForSale(
+        uint256 _tokenID,
+        bool _isOpenForSale
+    ) public override {
+        require(_msgSender() == ownerOf(_tokenID), "Passport: CALLER_NO_TOKEN_OWNER__ID_INVALID");
+        PassportInfo storage p = passports[_tokenID];
+        require(!p.isSigned, "Passport: PASSPORT_SIGNED");
+        p.isOpenForSale = _isOpenForSale;
+
+        emit OpenForSaleSet(_tokenID, _isOpenForSale);
+    }
+
+    /**
+     * @dev Mint new passports
      * Accessible by only Sapien governance
      * Sapien governance become passport `creator`
+     * Params length must match
      */
-    function create(string[] memory _uris) external onlyGovernance {
-        for (uint256 i = 0; i < _uris.length; i++) {
-            uint256 newID = ++passportID;
-            super._mint(_msgSender(), newID);
-            if (bytes(_uris[i]).length > 0) {
-                super._setTokenURI(newID, _uris[i]);
+    function mint(
+        address[] memory _accounts,
+        string[] memory _uris,
+        uint256[] memory _prices
+    ) external override onlyGovernance {
+        require(_accounts.length == _uris.length && _uris.length == _prices.length, "Passport: PARAM_LENGTH_MISMATCH");
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            address account = _accounts[i];
+            uint256 newID = passportID + 1;
+            // check first purchase limit for non-governance accounts
+            if (account == roleManager.governance() || (account != roleManager.governance() && firstPurchases[account] + 1 <= maxFirstPurchase)) {
+                super._mint(account, newID);
+                if (bytes(_uris[i]).length > 0) {
+                    super._setTokenURI(newID, _uris[i]);
+                }
+                passportID++;
+                PassportInfo storage passport = passports[newID];
+                passport.creator = _msgSender();
+                passport.priceETH = _prices[i];
+                // increase first purchased amount
+                firstPurchases[account]++;
+
+                emit Mint(newID, account, _prices[i]);
             }
-            PassportInfo storage passport = passports[newID];
-            passport.creator = _msgSender();
-            passport.priceETH = firstPriceETH;
         }
     }
 
-    // Sale
     /**
-     * @dev Purchase `_tokenID` at the first sale
-     * Transaction should hold enough ETH in `msg.value`
-     * Collect fee and send to `feeTreasury`
-     * `_tokenID` must exist
+     * @dev Pause the contract
      */
-    function purchase(uint256 _tokenID) external payable {
-        require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-        PassportInfo storage p = passports[_tokenID];
-        uint256 fee = p.priceETH * feeBps / 10000;
-        require(msg.value >= p.priceETH + fee, "Passport: INSUFFICIENT_FUNDS");
-        require(firstPurchases[_msgSender()] + 1 <= maxPurchase, "Passport: FIRST_SALE_PURCHASE_LIMIT_EXCEEDED");
-        (bool feeSent, ) = payable(feeTreasury).call{value: fee}("");
-        require(feeSent, "Passport: FEE_TRANSFER_FAILED");
-        firstPurchases[_msgSender()]++;
-        p.initialOwner = _msgSender();
-        super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
+    function pause() external onlyOwner {
+        _pause();
     }
 
     /**
-     * @dev Put `_tokenID` up for sale
-     * Accessible by only passport owner
-     * `_tokenID` must exist
-     * Passport must not be signed
+     * @dev Unpause the contract
      */
-    function putForSale(
-        uint256 _tokenID,
-        uint256 _price
-    ) external {
-        require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-        require(_msgSender() == ownerOf(_tokenID), "Passport: CALLER_NO_TOKEN_OWNER");
-        PassportInfo storage p = passports[_tokenID];
-        require(!p.isSigned, "Passport: PASSPORT_SIGNED");
-        p.isOpenForSale = true;
-        p.priceETH = _price;
-
-        emit PutForSale(_tokenID, _price);
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /**
-     * @dev Purchase `_tokenID` at the secondary sale
-     * Transaction should hold enough ETH in `msg.value`
-     * Collect royalty fee and send to first owner
-     * Collect fee and send to `feeTreasury`
-     * `_tokenID` must exist
-     * `_tokenID` must be open for sale
-     */
-    function purchaseSecondary(uint256 _tokenID) external payable {
-        require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-        PassportInfo storage p = passports[_tokenID];
-        require(p.isOpenForSale, "Passport: PASSPORT_CLOSED_FOR_SALE");
-        uint256 royaltyFee = p.priceETH * royaltyFeeBps / 10000;
-        uint256 fee = p.priceETH * feeBps / 10000;
-        require(msg.value >= p.priceETH + royaltyFee + fee, "Passport: INSUFFICIENT_FUNDS");
-        (bool royaltyFeeSent, ) = payable(p.initialOwner).call{value: royaltyFee}("");
-        require(royaltyFeeSent, "Passport: ROYALTY_FEE_TRANSFER_FAILED");
-        (bool feeSent, ) = payable(feeTreasury).call{value: fee}("");
-        require(feeSent, "Passport: FEE_TRANSFER_FAILED");
-        (bool priceSent, ) = payable(ownerOf(_tokenID)).call{value: p.priceETH}("");
-        require(priceSent, "Passport: PRICE_TRANSFER_FAILED");
-
-        p.isOpenForSale = false;
-        super._transfer(ownerOf(_tokenID), _msgSender(), _tokenID);
-    }
-
-    /**
-     * @dev Signed passports are not transferable
+     * @dev Tokens are non-transferable when:
+     * - caller is non-governance && the current timestamp < `saleStartDate`
+     * - signed passport
      */
     function _beforeTokenTransfer(
         address _from,
         address _to,
         uint256 _tokenID
     ) internal override {
+        if (_msgSender() != roleManager.governance() && block.timestamp < saleStartDate) {
+            revert("Passport: SALE_NOT_STARTED");
+        }
         require(!passports[_tokenID].isSigned, "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
     }
 }
