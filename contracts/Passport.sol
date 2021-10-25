@@ -79,6 +79,17 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   }
 
   /**
+    * @dev Set token URI
+    * Accessible by only Sapien governance
+    */
+  function setTokenURI(
+    uint256 _tokenID,
+    string memory _tokenURI
+  ) external override onlyGovernance {
+    super._setTokenURI(_tokenID, _tokenURI);
+  }
+
+  /**
     * @dev Sign the passport
     * Signed passports are not for sale
     * Accessible by only Sapien governance
