@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract PassportSale is Ownable {
+contract PassportSale is Ownable, Pausable {
   using SafeERC20 for IERC20;
   // Role Manager contract address
   IRoleManager public roleManager;
@@ -31,10 +32,10 @@ contract PassportSale is Ownable {
     bool isOpenForSale;
   }
 
-  event LogOpenForSale(uint256 tokenID, uint256 price);
+  event LogOpenForSale(uint256 tokenID);
   event LogCloseForSale(uint256 indexed tokenID);
-  event LogPriceSet(uint256 indexed tokenID, uint256 price);
-  event LogPurchase(uint256 tokenID, address seller, address buyer, uint256 price);
+  event LogPriceSet(uint256 indexed tokenID, uint256 priceETH, uint256 priceSPN);
+  event LogPurchase(uint256 tokenID, address seller, address buyer);
   event LogSweep(address token, address to);
 
   constructor(
@@ -52,6 +53,11 @@ contract PassportSale is Ownable {
 
   modifier onlyGovernance() {
     require(_msgSender() == roleManager.governance(), "PassportSale: CALLER_NO_GOVERNANCE");
+    _;
+  }
+
+  modifier saleIsOpen() {
+    require(!paused() && block.timestamp >= saleStartDate, "PassportSale: SALE_NOT_OPEN");
     _;
   }
 
@@ -76,21 +82,27 @@ contract PassportSale is Ownable {
   }
 
   /**
-    * @dev Set passport price in ETH
+    * @dev Set passport price in ETH and SPN
     * Accessible by only passport owner
     * `_tokenID` must exist
     * `_tokenID` must not be signed
     */
-  function setPriceETH(
+  function setPrice(
     uint256 _tokenID,
-    uint256 _price
-  ) public {
+    uint256 _priceETH,
+    uint256 _priceSPN
+  ) public saleIsOpen {
     require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
     (, bool signed) = passContract.passports(_tokenID);
     require(!signed, "PassportSale: PASSPORT_SIGNED");
-    passportSales[_tokenID].priceETH = _price;
+    if (_priceETH > 0) {
+      passportSales[_tokenID].priceETH = _priceETH;
+    }
+    if (_priceSPN > 0) {
+      passportSales[_tokenID].priceSPN = _priceSPN;
+    }
 
-    emit LogPriceSet(_tokenID, _price);
+    emit LogPriceSet(_tokenID, _priceETH, _priceSPN);
   }
 
   /**
@@ -101,7 +113,7 @@ contract PassportSale is Ownable {
     */
   function closeForSale(
     uint256 _tokenID
-  ) public {
+  ) public saleIsOpen {
     require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
     passportSales[_tokenID].isOpenForSale = false;
 
@@ -116,17 +128,22 @@ contract PassportSale is Ownable {
     */
   function openForSale(
     uint256 _tokenID,
-    uint256 _price
-  ) external {
-    require(block.timestamp >= saleStartDate, "PassportSale: SALE_NOT_STARTED");
+    uint256 _priceETH,
+    uint256 _priceSPN
+  ) external saleIsOpen {
     require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER");
     (, bool isSigned) = passContract.passports(_tokenID);
     require(!isSigned, "PassportSale: PASSPORT_SIGNED");
     PassportSaleInfo storage pSale = passportSales[_tokenID];
     pSale.isOpenForSale = true;
-    pSale.priceETH = _price;
+    if (_priceETH > 0) {
+      pSale.priceETH = _priceETH;
+    }
+    if (_priceSPN > 0) {
+      pSale.priceSPN = _priceSPN;
+    }
 
-    emit LogOpenForSale(_tokenID, _price);
+    emit LogOpenForSale(_tokenID);
   }
 
   /**
@@ -134,27 +151,48 @@ contract PassportSale is Ownable {
     * Collect royalty fee and send to passport creator
     * `_tokenID` must exist
     * `_tokenID` must be open for sale
+    * `_ethOrSPN` must be 0 or 1, 0 - purchase with ETH, 1 - purchase with SPN
     */
-  function purchase(uint256 _tokenID) external {
-    require(block.timestamp >= saleStartDate, "PassportSale: SALE_NOT_STARTED");
+  function purchase(
+    uint256 _tokenID,
+    uint8 _ethOrSPN
+  ) external saleIsOpen {
     address passOwner = passContract.ownerOf(_tokenID);
     require(passOwner != address(0), "PassportSale: PASSPORT_ID_INVALID");
     require(passOwner != _msgSender(), "PassportSale: NO_SELF_PURCHASE");
-    // (address creator, uint256 price, , bool isOpenForSale) = passContract.passports(_tokenID);
-    (address creator, ) = passContract.passports(_tokenID);
+    require(_ethOrSPN < 2, "PassportSale: ETH_OR_SPN_FLAG_INVALID");
+
     PassportSaleInfo storage pSale = passportSales[_tokenID];
-    uint256 price = pSale.priceETH;
     bool isOpenForSale = pSale.isOpenForSale;
     require(isOpenForSale, "PassportSale: PASSPORT_CLOSED_FOR_SALE");
-    uint256 royaltyFee = price * royaltyFeeBps / 10000;
-    weth.safeTransferFrom(_msgSender(), creator, royaltyFee);
-    weth.safeTransferFrom(_msgSender(), passOwner, price - royaltyFee);
-    passContract.safeTransferFrom(passOwner, _msgSender(), _tokenID);
-    pSale.isOpenForSale = false;
-
-    emit LogPurchase(_tokenID, passOwner, _msgSender(), price);
+    _purchase(passOwner, _msgSender(), _tokenID, _ethOrSPN);
   }
 
+  function _purchase(
+    address _tokenOwner,
+    address _buyer,
+    uint256 _tokenID,
+    uint8 _ethOrSPN
+  ) private {
+    PassportSaleInfo storage pSale = passportSales[_tokenID];
+    // if `_ethOrSPN` is 0 Eth, otherwise SPN
+    uint256 price = _ethOrSPN == 0 ? pSale.priceETH: pSale.priceSPN;
+    IERC20 token = _ethOrSPN == 0 ? weth: spn;
+
+    uint256 royaltyFee = price * royaltyFeeBps / 10000;
+    (address creator, ) = passContract.passports(_tokenID);
+    token.safeTransferFrom(_buyer, creator, royaltyFee);
+    token.safeTransferFrom(_buyer, _tokenOwner, price - royaltyFee);
+    passContract.safeTransferFrom(_tokenOwner, _buyer, _tokenID);
+    pSale.isOpenForSale = false;
+
+    emit LogPurchase(_tokenID, _tokenOwner, _buyer);
+  }
+
+  /**
+   * @dev Transfer `_token` all amount to `_to`
+   * Accessible by only Sapien governance
+   */
   function sweep(address _token, address _to) external onlyGovernance {
     require(_token != address(0), "PassportSale: TOKEN_ADDRESS_INVALID");
     uint256 amount = IERC20(_token).balanceOf(address(this));
