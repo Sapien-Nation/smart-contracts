@@ -10,9 +10,7 @@ interface IPassport is IERC721Upgradeable {
 
   function setMaxFirstMintPerAddress(uint16 _maxFirstMintPerAddress) external;
 
-  function setTokenURI(uint256 _tokenID, string memory _tokenURI) external;
-
   function sign(uint256 _tokenID) external;
 
-  function mint(address[] memory _accounts, string[] memory _uris) external;
+  function mint(address[] memory _accounts) external;
 }

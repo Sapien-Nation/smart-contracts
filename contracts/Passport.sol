@@ -81,17 +81,6 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   }
 
   /**
-    * @dev Set token URI
-    * Accessible by only Sapien governance
-    */
-  function setTokenURI(
-    uint256 _tokenID,
-    string memory _tokenURI
-  ) external override onlyGovernance {
-    super._setTokenURI(_tokenID, _tokenURI);
-  }
-
-  /**
     * @dev Sign the passport
     * Signed passports are not for sale
     * Accessible by only Sapien governance
@@ -108,13 +97,10 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     * @dev Mint new passports
     * Accessible by only Sapien governance
     * Sapien governance become passport `creator`
-    * Params length must match
     */
   function mint(
-    address[] memory _accounts,
-    string[] memory _uris
+    address[] memory _accounts
   ) external override onlyGovernance whenNotPaused {
-    require(_accounts.length == _uris.length, "Passport: PARAM_LENGTH_MISMATCH");
     address gov = roleManager.governance();
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
@@ -122,9 +108,6 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
       // check first purchase limit for non-governance accounts
       if (account == gov || (account != gov && firstPurchases[account] + 1 <= maxFirstMintPerAddress)) {
         super._mint(account, newID);
-        if (bytes(_uris[i]).length > 0) {
-            super._setTokenURI(newID, _uris[i]);
-        }
         passportID++;
         PassportInfo storage passport = passports[newID];
         passport.creator = _msgSender();
