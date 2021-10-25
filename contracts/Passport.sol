@@ -12,10 +12,10 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   uint256 passportID;
   // Role Manager contract address
   IRoleManager roleManager;
-  // Maximum number of passports that one user can purchase at the first sale
-  uint16 public maxFirstPurchase;
-  // Public sale start date, 11/19/2021
-  uint256 public saleStartDate;
+  // Maximum number of passports that one wallet can purchase at the first sale
+  uint16 public maxFirstMintPerAddress;
+  // Non-governance wallets can transfer tokens flag
+  bool public isTransferable;
 
   struct PassportInfo {
     address creator;
@@ -44,8 +44,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   ) internal initializer {
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
-    saleStartDate = 1637280000;
-    maxFirstPurchase = 5;
+    maxFirstMintPerAddress = 5;
   }
 
   modifier onlyGovernance() {
@@ -64,23 +63,21 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   }
 
   /**
-    * @dev Set `saleStartDate`
+    * @dev Set `isTransferable`
     * Accessible by only Sapien governance
-    * `_saleStartDate` must be greater than current timestamp
     */
-  function setSaleStartDate(uint256 _saleStartDate) external onlyGovernance {
-    require(_saleStartDate > block.timestamp, "Passport: SALE_START_DATE_INVALID");
-    saleStartDate = _saleStartDate;
+  function setIsTransferable(bool _isTransferable) external onlyGovernance {
+    isTransferable = _isTransferable;
   }
 
   /**
-    * @dev Set `maxFirstPurchase` address
+    * @dev Set `maxFirstMintPerAddress`
     * Accessible by only Sapien governance
-    * `_maxPurchase` must not be zero
+    * `_maxFirstMintPerAddress` must not be zero
     */
-  function setMaxPurchase(uint16 _maxPurchase) external override onlyGovernance {
-    require(_maxPurchase > 0, "Passport: MAX_PURCHASE_INVALID");
-    maxFirstPurchase = _maxPurchase;
+  function setMaxFirstMintPerAddress(uint16 _maxFirstMintPerAddress) external override onlyGovernance {
+    require(_maxFirstMintPerAddress > 0, "Passport: MAX_FIRST_MINT_INVALID");
+    maxFirstMintPerAddress = _maxFirstMintPerAddress;
   }
 
   /**
@@ -116,13 +113,14 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   function mint(
     address[] memory _accounts,
     string[] memory _uris
-  ) external override onlyGovernance {
+  ) external override onlyGovernance whenNotPaused {
     require(_accounts.length == _uris.length, "Passport: PARAM_LENGTH_MISMATCH");
+    address gov = roleManager.governance();
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
       // check first purchase limit for non-governance accounts
-      if (account == roleManager.governance() || (account != roleManager.governance() && firstPurchases[account] + 1 <= maxFirstPurchase)) {
+      if (account == gov || (account != gov && firstPurchases[account] + 1 <= maxFirstMintPerAddress)) {
         super._mint(account, newID);
         if (bytes(_uris[i]).length > 0) {
             super._setTokenURI(newID, _uris[i]);
@@ -164,16 +162,17 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
 
   /**
     * @dev Tokens are non-transferable when:
-    * - caller is non-governance && the current timestamp < `saleStartDate`
+    * - caller is non-governance && `isTransferable` is false
     * - signed passport
+    * - contract is paused
     */
   function _beforeTokenTransfer(
     address _from,
     address _to,
     uint256 _tokenID
-  ) internal override {
-    if (_msgSender() != roleManager.governance() && block.timestamp < saleStartDate) {
-      revert("Passport: SALE_NOT_STARTED");
+  ) internal override whenNotPaused {
+    if (_msgSender() != roleManager.governance() && !isTransferable) {
+      revert("Passport: TOKEN_NOT_TRANSFERABLE");
     }
     require(!passports[_tokenID].isSigned, "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
   }

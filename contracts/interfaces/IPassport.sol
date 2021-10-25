@@ -8,7 +8,7 @@ interface IPassport is IERC721Upgradeable {
 
   function setRoleManager(address _roleManager) external;
 
-  function setMaxPurchase(uint16 _maxPurchase) external;
+  function setMaxFirstMintPerAddress(uint16 _maxFirstMintPerAddress) external;
 
   function setTokenURI(uint256 _tokenID, string memory _tokenURI) external;
 
