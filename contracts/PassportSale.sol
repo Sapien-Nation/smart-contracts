@@ -95,29 +95,16 @@ contract PassportSale is Ownable, Pausable {
     require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
     (, bool signed) = passContract.passports(_tokenID);
     require(!signed, "PassportSale: PASSPORT_SIGNED");
+
     if (_priceETH > 0) {
       passportSales[_tokenID].priceETH = _priceETH;
     }
+
     if (_priceSPN > 0) {
       passportSales[_tokenID].priceSPN = _priceSPN;
     }
 
     emit LogPriceSet(_tokenID, _priceETH, _priceSPN);
-  }
-
-  /**
-    * @dev Close `_tokenID` for sale
-    * Accessible by only passport owner
-    * `_tokenID` must exist
-    * `_tokenID` must not be signed
-    */
-  function closeForSale(
-    uint256 _tokenID
-  ) public saleIsOpen {
-    require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
-    passportSales[_tokenID].isOpenForSale = false;
-
-    emit LogCloseForSale(_tokenID);
   }
 
   /**
@@ -136,14 +123,31 @@ contract PassportSale is Ownable, Pausable {
     require(!isSigned, "PassportSale: PASSPORT_SIGNED");
     PassportSaleInfo storage pSale = passportSales[_tokenID];
     pSale.isOpenForSale = true;
+
     if (_priceETH > 0) {
       pSale.priceETH = _priceETH;
     }
+
     if (_priceSPN > 0) {
       pSale.priceSPN = _priceSPN;
     }
 
     emit LogOpenForSale(_tokenID);
+  }
+
+  /**
+    * @dev Close `_tokenID` for sale
+    * Accessible by only passport owner
+    * `_tokenID` must exist
+    * `_tokenID` must not be signed
+    */
+  function closeForSale(
+    uint256 _tokenID
+  ) public {
+    require(_msgSender() == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
+    passportSales[_tokenID].isOpenForSale = false;
+
+    emit LogCloseForSale(_tokenID);
   }
 
   /**

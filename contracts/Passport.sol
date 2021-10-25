@@ -39,9 +39,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     __Passport_init_unchained(_roleManager);
   }
 
-  function __Passport_init_unchained(
-    address _roleManager
-  ) internal initializer {
+  function __Passport_init_unchained(address _roleManager) internal initializer {
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
     maxFirstMintPerAddress = 5;
@@ -98,9 +96,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     * Accessible by only Sapien governance
     * Sapien governance become passport `creator`
     */
-  function mint(
-    address[] memory _accounts
-  ) external override onlyGovernance whenNotPaused {
+  function mint(address[] memory _accounts) external override onlyGovernance whenNotPaused {
     address gov = roleManager.governance();
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
