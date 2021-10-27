@@ -16,6 +16,8 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   uint16 public maxFirstMintPerAddress;
   // Non-governance wallets can transfer tokens flag
   bool public isTransferable;
+  // Base token URI
+  string public baseTokenURI;
 
   struct PassportInfo {
     address creator;
@@ -32,16 +34,23 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   function initialize(
     string memory _name,
     string memory _symbol,
+    string memory _baseTokenURI,
     address _roleManager
   ) public initializer {
     __ERC721_init(_name, _symbol);
+    __ERC721URIStorage_init();
     __Ownable_init();
-    __Passport_init_unchained(_roleManager);
+    __Pausable_init();
+    __Passport_init_unchained(_baseTokenURI, _roleManager);
   }
 
-  function __Passport_init_unchained(address _roleManager) internal initializer {
+  function __Passport_init_unchained(
+    string memory _baseTokenURI,
+    address _roleManager
+  ) internal initializer {
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
+    baseTokenURI = _baseTokenURI;
     maxFirstMintPerAddress = 5;
   }
 
@@ -58,6 +67,14 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   function setRoleManager(address _roleManager) external override onlyOwner {
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
+  }
+
+  /**
+    * @dev Set `baseTokenURI`
+    * Accessible by only Sapien governance
+    */
+  function setBaseTokenURI(string memory _baseTokenURI) external onlyGovernance {
+    baseTokenURI = _baseTokenURI;
   }
 
   /**
@@ -139,14 +156,14 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   /**
     * @dev Pause the contract
     */
-  function pause() external onlyOwner {
+  function pause() external onlyGovernance {
     _pause();
   }
 
   /**
     * @dev Unpause the contract
     */
-  function unpause() external onlyOwner {
+  function unpause() external onlyGovernance {
     _unpause();
   }
 
@@ -165,5 +182,13 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
       revert("Passport: TOKEN_NOT_TRANSFERABLE");
     }
     require(!passports[_tokenID].isSigned, "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
+  }
+
+  /**
+    * @dev Return base URI
+    * Override {ERC721Upgradeable:_baseURI}
+    */
+  function _baseURI() internal view override returns (string memory) {
+    return baseTokenURI;
   }
 }

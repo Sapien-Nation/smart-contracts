@@ -11,7 +11,7 @@ async function setup() {
   await roleManager.mock.governance.returns(gov.address);
   await roleManager.mock.isMarketplace.withArgs(alice.address).returns(false);
   const Passport = await ethers.getContractFactory('Passport');
-  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', roleManager.address]);
+  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', 'https://sapien.network/metadata/passport/', roleManager.address]);
   await passport.deployed();
   return {roleManager, passport, owner, gov, alice, bob, carol};
 }
@@ -23,17 +23,14 @@ describe('Passport', async () => {
   describe('Mint', async () => {
     it('expect to mint', async () => {
       ({roleManager, passport, owner, gov, alice, bob, carol} = await setup());
-      await passport.connect(gov).mint([alice.address, bob.address], ['', '']);
+      await passport.connect(gov).mint([alice.address, bob.address]);
       expect(await passport.ownerOf(1)).to.eq(alice.address);
+      expect(await passport.tokenURI(1)).to.eq('https://sapien.network/metadata/passport/1');
     });
     describe('reverts if', async () => {
       it('caller is not governance', async () => {
-        await expect(passport.mint([alice.address, bob.address], ['', '']))
+        await expect(passport.mint([alice.address, bob.address]))
           .to.be.revertedWith('Passport: CALLER_NO_GOVERNANCE');
-      });
-      it('params length mismatch', async () => {
-        await expect(passport.connect(gov).mint([alice.address, bob.address, carol.address], ['', '']))
-          .to.be.revertedWith('Passport: PARAM_LENGTH_MISMATCH');
       });
     });
   });
@@ -62,6 +59,15 @@ describe('Passport', async () => {
       await passport.connect(gov).setIsTransferable(true);
       await expect(passport.connect(alice).transferFrom(alice.address, carol.address, 1))
         .to.be.revertedWith('Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE');
+    });
+  });
+
+  describe('Pausability', async () => {
+    it('expect to pause', async () => {
+      await passport.connect(gov).pause();
+      expect(await passport.paused()).to.be.true;
+      await expect(passport.connect(gov).mint([alice.address, bob.address]))
+        .to.be.revertedWith('Pausable: paused');
     });
   });
 });
