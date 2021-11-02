@@ -19,12 +19,8 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   // Base token URI
   string public baseTokenURI;
 
-  struct PassportInfo {
-    address creator;
-    bool isSigned;
-  }
-  // Passport ID => passport info
-  mapping(uint256 => PassportInfo) public override passports;
+  // Passport ID => passport sign status
+  mapping(uint256 => bool) public override isSigned;
   // address => number of passports at the first sale
   mapping(address => uint256) public firstPurchases;
 
@@ -114,7 +110,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     */
   function sign(uint256 _tokenID) external override onlyGovernance {
     require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
-    passports[_tokenID].isSigned = true;
+    isSigned[_tokenID] = true;
 
     emit LogSign(_tokenID);
   }
@@ -131,10 +127,8 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
       uint256 newID = passportID + 1;
       // check first purchase limit for non-governance accounts
       if (account == gov || (account != gov && firstPurchases[account] + 1 <= maxFirstMintPerAddress)) {
-        super._mint(account, newID);
+        super._safeMint(account, newID);
         passportID++;
-        PassportInfo storage passport = passports[newID];
-        passport.creator = _msgSender();
         // increase first purchased amount
         firstPurchases[account]++;
 
@@ -150,7 +144,11 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     address _owner,
     address _operator
   ) public view override(ERC721Upgradeable, IERC721Upgradeable) returns (bool) {
-    return roleManager.isMarketplace(_operator);
+    if (roleManager.isMarketplace(_operator)) {
+      return true;
+    } else {
+      return ERC721Upgradeable.isApprovedForAll(_owner, _operator);
+    }
   }
 
   /**
@@ -181,7 +179,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     if (_msgSender() != roleManager.governance() && !isTransferable) {
       revert("Passport: TOKEN_NOT_TRANSFERABLE");
     }
-    require(!passports[_tokenID].isSigned, "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
+    require(!isSigned[_tokenID], "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
   }
 
   /**

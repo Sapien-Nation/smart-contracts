@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 
 interface IPassport is IERC721Upgradeable {
-  function passports(uint256 _id) external view returns (address creator, bool isSigned);
+  function isSigned(uint256 _id) external view returns (bool);
 
   function setRoleManager(address _roleManager) external;
 
