@@ -4,7 +4,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/IAccessControlEnumerable.sol";
 
 interface IRoleManager is IAccessControlEnumerable {
-  function setGovernance(address _governance) external;
+  function transferGovernance(address _newGov) external;
+
+  function renounceGovernance() external ;
 
   function governance() external view returns (address governance);
 

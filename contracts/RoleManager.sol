@@ -2,51 +2,72 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRoleManager.sol";
 
-contract RoleManager is IRoleManager, AccessControlEnumerable, Ownable {
-  bytes32 public constant GOVERNANCE_ROLE = keccak256("GOVERNANCE_ROLE");
+contract RoleManager is IRoleManager, AccessControlEnumerable {
   bytes32 public constant MARKETPLACE_ROLE = keccak256("MARKETPLACE_ROLE");
   // Sapien governance address
   address public override governance;
 
   event LogGovernanceSet(address prev, address next);
 
-  constructor(address _governance) {
-    require(_governance != address(0), "RoleManager: GOVERNANCE_ADDRESS_INVALID");
-    governance = _governance;
-
-    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    _setupRole(GOVERNANCE_ROLE, _governance);
+  modifier onlyGovernance() {
+    require(msg.sender == governance, "RoleManager: CALLER_NO_GOVERNANCE");
+    _;
   }
 
-  function setGovernance(address _governance) external override onlyOwner {
-    require(_governance != address(0), "RoleManager: GOVERNANCE_ADDRESS_INVALID");
-    address currentGov = governance;
-    revokeRole(GOVERNANCE_ROLE, currentGov);
-    governance = _governance;
-    grantRole(GOVERNANCE_ROLE, _governance);
+  constructor() {
+    governance = msg.sender;
 
-    emit LogGovernanceSet(currentGov, _governance);
+    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+  }
+
+  /**
+   * @dev Transfer governance role to `_newGov`
+   * Accessible by only Sapien governance
+   * `_newGov` must not be zero address
+   */
+  function transferGovernance(address _newGov) external override onlyGovernance {
+    require(_newGov != address(0), "RoleManager: NEW_GOVERNANCE_ADDRESS_INVALID");
+    _setGovernance(_newGov);
+  }
+
+  /**
+   * @dev Renounce governance role
+   * Accessible by only Sapien governance
+   */
+  function renounceGovernance() external override onlyGovernance {
+    revokeRole(DEFAULT_ADMIN_ROLE, governance);
+    _setGovernance(address(0));
+  }
+
+  function _setGovernance(address _newGov) private {
+    address gov = governance;
+    revokeRole(DEFAULT_ADMIN_ROLE, gov);
+    if (_newGov != address(0)) {
+      grantRole(DEFAULT_ADMIN_ROLE, _newGov);
+    }
+    governance = _newGov;
+
+    emit LogGovernanceSet(gov, _newGov);
   }
 
   /**
   * @dev Add an `_account` to the `MARKETPLACE` role.
   */
-  function addMarketplace(address _account) external override onlyOwner {
+  function addMarketplace(address _account) external override onlyGovernance {
     grantRole(MARKETPLACE_ROLE, _account);
   }
 
   /**
   * @dev Remove an `_account` from the `MARKETPLACE` role.
   */
-  function removeMarketplace(address _account) public override onlyOwner {
+  function removeMarketplace(address _account) public override onlyGovernance {
     revokeRole(MARKETPLACE_ROLE, _account);
   }
 
   /**
-    * @dev Check if an `_account` is `MARKETPLACE`.
+    * @dev Check if an `_account` has `MARKETPLACE` role.
     */
   function isMarketplace(address _account) public override view returns (bool) {
     return hasRole(MARKETPLACE_ROLE, _account);

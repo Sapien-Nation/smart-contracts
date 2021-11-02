@@ -67,7 +67,7 @@ contract PassportSale is Ownable, Pausable {
     * `_royaltyFeeBps` must not be zero
     */
   function setRoyaltyFee(uint16 _royaltyFeeBps) external onlyGovernance {
-    require(_royaltyFeeBps > 0, "PassportSale: ROYALTY_FEE_INVALID");
+    require(_royaltyFeeBps > 0 && _royaltyFeeBps <= 10000, "PassportSale: ROYALTY_FEE_INVALID");
     royaltyFeeBps = _royaltyFeeBps;
   }
 
@@ -77,6 +77,7 @@ contract PassportSale is Ownable, Pausable {
     * `saleStartDate` must be greater than current timestamp
     */
   function setSaleStartDate(uint256 _saleStartDate) external onlyGovernance {
+    require(saleStartDate > block.timestamp, "PassportSale: SALE_STARTED");
     require(_saleStartDate > block.timestamp, "PassportSale: SALE_START_DATE_INVALID");
     saleStartDate = _saleStartDate;
   }
