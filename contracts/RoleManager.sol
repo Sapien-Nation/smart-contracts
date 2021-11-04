@@ -18,8 +18,9 @@ contract RoleManager is IRoleManager, AccessControlEnumerable {
 
   constructor() {
     governance = msg.sender;
-
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+    emit LogGovernanceSet(address(0), msg.sender);
   }
 
   /**
@@ -37,16 +38,15 @@ contract RoleManager is IRoleManager, AccessControlEnumerable {
    * Accessible by only Sapien governance
    */
   function renounceGovernance() external override onlyGovernance {
-    revokeRole(DEFAULT_ADMIN_ROLE, governance);
     _setGovernance(address(0));
   }
 
   function _setGovernance(address _newGov) private {
     address gov = governance;
-    revokeRole(DEFAULT_ADMIN_ROLE, gov);
     if (_newGov != address(0)) {
       grantRole(DEFAULT_ADMIN_ROLE, _newGov);
     }
+    revokeRole(DEFAULT_ADMIN_ROLE, gov);
     governance = _newGov;
 
     emit LogGovernanceSet(gov, _newGov);

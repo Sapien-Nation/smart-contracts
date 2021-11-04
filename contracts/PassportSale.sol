@@ -68,6 +68,16 @@ contract PassportSale is Ownable, Pausable {
   }
 
   /**
+    * @dev Set Role Manager contract address
+    * Accessible by only `owner`
+    * `_roleManager` must not be zero address
+    */
+  function setRoleManager(address _roleManager) external onlyOwner {
+    require(_roleManager != address(0), "PassportSale: ROLE_MANAGER_ADDRESS_INVALID");
+    roleManager = IRoleManager(_roleManager);
+  }
+
+  /**
     * @dev Set `royaltyFeeBps`
     * Accessible by only Sapien governance
     * `_royaltyFeeBps` must not be zero
@@ -100,12 +110,46 @@ contract PassportSale is Ownable, Pausable {
     uint256 _priceEth,
     uint256 _priceSPN
   ) public saleIsOpen {
+    bool signed = passContract.isSigned(_tokenID);
+    require(!signed, "PassportSale: PASSPORT_SIGNED");
+
     require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
     PassportSaleInfo storage pSale = passportSales[_tokenID];
     require(msg.sender == pSale.seller, "PassportSale: OWNERSHIP_CHANGED");
+    _setPrice(_tokenID, _priceEth, _priceSPN);
+  }
+
+  /**
+    * @dev Open `_tokenID` for sale
+    * Accessible by only passport owner
+    * `_tokenID` must exist
+    * Passport must not be signed
+    * `_priceEth` and `_priceSPN` must not be zero at the same time
+    */
+  function openForSale(
+    uint256 _tokenID,
+    uint256 _priceEth,
+    uint256 _priceSPN
+  ) external saleIsOpen {
     bool signed = passContract.isSigned(_tokenID);
     require(!signed, "PassportSale: PASSPORT_SIGNED");
+
+    require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
+    _setPrice(_tokenID, _priceEth, _priceSPN);
+    PassportSaleInfo storage pSale = passportSales[_tokenID];
+    pSale.seller = msg.sender;
+    pSale.isOpenForSale = true;
+
+    emit LogOpenForSale(_tokenID);
+  }
+
+  function _setPrice(
+    uint256 _tokenID,
+    uint256 _priceEth,
+    uint256 _priceSPN
+  ) private {
     require(_priceEth > 0 || _priceSPN > 0, "PassportSale: PRICES_INVALID");
+    PassportSaleInfo storage pSale = passportSales[_tokenID];
 
     if (_priceEth > 0) {
       pSale.priceEth = _priceEth;
@@ -116,38 +160,6 @@ contract PassportSale is Ownable, Pausable {
     }
 
     emit LogPriceSet(_tokenID, _priceEth, _priceSPN);
-  }
-
-  /**
-    * @dev Open `_tokenID` for sale
-    * Accessible by only passport owner
-    * `_tokenID` must exist
-    * Passport must not be signed
-    * `_priceEth` and `_priceSPN` can be zero at the same time
-    */
-  function openForSale(
-    uint256 _tokenID,
-    uint256 _priceEth,
-    uint256 _priceSPN
-  ) external saleIsOpen {
-    require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER");
-    bool signed = passContract.isSigned(_tokenID);
-    require(!signed, "PassportSale: PASSPORT_SIGNED");
-    PassportSaleInfo storage pSale = passportSales[_tokenID];
-    pSale.isOpenForSale = true;
-    pSale.seller = msg.sender;
-
-    if (_priceEth > 0) {
-      pSale.priceEth = _priceEth;
-    }
-
-    if (_priceSPN > 0) {
-      pSale.priceSPN = _priceSPN;
-    }
-
-    require(pSale.priceEth > 0 || pSale.priceSPN > 0, "PassportSale: PRICES_INVALID");
-
-    emit LogOpenForSale(_tokenID);
   }
 
   /**
@@ -170,6 +182,7 @@ contract PassportSale is Ownable, Pausable {
     * Collect royalty fee and send to passport creator
     * `_tokenID` must exist
     * `_tokenID` must be open for sale
+    * `_tokenID` must not be signed
     * `_ethOrSPN` must be 0 or 1, 0 - purchase with Eth, 1 - purchase with SPN
     */
   function purchase(
@@ -177,14 +190,20 @@ contract PassportSale is Ownable, Pausable {
     uint8 _ethOrSPN
   ) external saleIsOpen {
     PassportSaleInfo memory pSale = passportSales[_tokenID];
+
+    bool signed = passContract.isSigned(_tokenID);
+    require(!signed, "PassportSale: PASSPORT_SIGNED");
+
     address passOwner = passContract.ownerOf(_tokenID);
-    require(passOwner == pSale.seller, "PassportSale: OWNERSHIP_CHANGED");
     require(passOwner != address(0), "PassportSale: PASSPORT_ID_INVALID");
     require(passOwner != msg.sender, "PassportSale: NO_SELF_PURCHASE");
-    require(_ethOrSPN < 2, "PassportSale: ETH_OR_SPN_FLAG_INVALID");
+    require(passOwner == pSale.seller, "PassportSale: OWNERSHIP_CHANGED");
 
     bool isOpenForSale = pSale.isOpenForSale;
     require(isOpenForSale, "PassportSale: PASSPORT_CLOSED_FOR_SALE");
+
+    require(_ethOrSPN < 2, "PassportSale: ETH_OR_SPN_FLAG_INVALID");
+
     _purchase(passOwner, msg.sender, _tokenID, _ethOrSPN);
   }
 
@@ -201,7 +220,7 @@ contract PassportSale is Ownable, Pausable {
     IERC20 token = _ethOrSPN == 0 ? weth: spn;
 
     uint256 royaltyFee = price * royaltyFeeBps / 10000;
-    token.safeTransferFrom(_buyer, roleManager.governance(), royaltyFee);
+    token.safeTransferFrom(_buyer, passContract.creators(_tokenID), royaltyFee);
     token.safeTransferFrom(_buyer, _tokenOwner, price - royaltyFee);
     passContract.safeTransferFrom(_tokenOwner, _buyer, _tokenID);
     pSale.isOpenForSale = false;

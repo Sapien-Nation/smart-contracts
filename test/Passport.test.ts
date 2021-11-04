@@ -1,5 +1,4 @@
-import {MockProvider} from '@ethereum-waffle/provider';
-import {deployMockContract} from '@ethereum-waffle/mock-contract';
+import { deployMockContract } from '@ethereum-waffle/mock-contract';
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 
@@ -38,9 +37,7 @@ describe('Passport', async () => {
   describe('Sign', async () => {
     it('expect to sign', async () => {
       await passport.connect(gov).sign(1);
-      await passport.passports(1).then((res: any) => {
-        expect(res[1]).to.be.true;
-      })
+      expect(await passport.isSigned(1)).to.be.true;
     });
     describe('reverts if', async () => {
       it('caller is not governance', async () => {
@@ -68,6 +65,10 @@ describe('Passport', async () => {
       expect(await passport.paused()).to.be.true;
       await expect(passport.connect(gov).mint([alice.address, bob.address]))
         .to.be.revertedWith('Pausable: paused');
+    });
+    it('expect to unpause', async () => {
+      await passport.connect(gov).unpause();
+      expect(await passport.paused()).to.be.false;
     });
   });
 });

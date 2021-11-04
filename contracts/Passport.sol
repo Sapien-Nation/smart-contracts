@@ -9,9 +9,9 @@ import "./interfaces/IPassport.sol";
 
 contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable, PausableUpgradeable {
   // Latest passport id starting from 1
-  uint256 passportID;
+  uint256 public passportID;
   // Role Manager contract address
-  IRoleManager roleManager;
+  IRoleManager public roleManager;
   // Maximum number of passports that one wallet can purchase at the first sale
   uint16 public maxFirstMintPerAddress;
   // Non-governance wallets can transfer tokens flag
@@ -21,6 +21,8 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
 
   // Passport ID => passport sign status
   mapping(uint256 => bool) public override isSigned;
+  // Passport ID => passport creator address
+  mapping(uint256 => address) public override creators;
   // address => number of passports at the first sale
   mapping(address => uint256) public firstPurchases;
 
@@ -128,6 +130,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
       // check first purchase limit for non-governance accounts
       if (account == gov || (account != gov && firstPurchases[account] + 1 <= maxFirstMintPerAddress)) {
         super._safeMint(account, newID);
+        creators[newID] = gov;
         passportID++;
         // increase first purchased amount
         firstPurchases[account]++;
