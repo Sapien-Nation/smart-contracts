@@ -22,9 +22,15 @@ describe('Passport', async () => {
   describe('Mint', async () => {
     it('expect to mint', async () => {
       ({roleManager, passport, owner, gov, alice, bob, carol} = await setup());
-      await passport.connect(gov).mint([alice.address, bob.address]);
+      await passport.connect(gov).mint([alice.address, bob.address, carol.address, gov.address]);
       expect(await passport.ownerOf(1)).to.eq(alice.address);
       expect(await passport.tokenURI(1)).to.eq('https://sapien.network/metadata/passport/1');
+      await passport.tokenByIndex(1).then((res: any) => {
+        expect(res.toString()).to.eq('2');
+      });
+      await passport.tokenOfOwnerByIndex(alice.address, 0).then((res: any) => {
+        expect(res.toString()).to.eq('1');
+      });
     });
     describe('reverts if', async () => {
       it('caller is not governance', async () => {
@@ -51,6 +57,15 @@ describe('Passport', async () => {
     it('non-governance wallet can\'t transfer when \'isTransferable\' is false', async () => {
       await expect(passport.connect(bob).transferFrom(bob.address, carol.address, 2))
         .to.be.revertedWith('Passport: TOKEN_NOT_TRANSFERABLE');
+    });
+    it('governance wallet can transfer even when \'isTransferable\' is false', async () => {
+      await passport.connect(gov).transferFrom(gov.address, carol.address, 4);
+      await passport.tokenOfOwnerByIndex(carol.address, 0).then((res: any) => {
+        expect(res.toString()).to.eq('3');
+      });
+      await passport.tokenOfOwnerByIndex(carol.address, 1).then((res: any) => {
+        expect(res.toString()).to.eq('4');
+      });
     });
     it('signed passport is not transferable', async () => {
       await passport.connect(gov).setIsTransferable(true);
