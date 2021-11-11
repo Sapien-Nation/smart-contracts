@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable, PausableUpgradeable {
+contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable {
   // Latest passport id starting from 1
   uint256 public passportID;
   // Role Manager contract address
@@ -36,7 +36,7 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     address _roleManager
   ) public initializer {
     __ERC721_init(_name, _symbol);
-    __ERC721URIStorage_init();
+    __ERC721Enumerable_init();
     __Ownable_init();
     __Pausable_init();
     __Passport_init_unchained(_baseTokenURI, _roleManager);
@@ -91,17 +91,6 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
   function setMaxFirstMintPerAddress(uint16 _maxFirstMintPerAddress) external override onlyGovernance {
     require(_maxFirstMintPerAddress > 0, "Passport: MAX_FIRST_MINT_INVALID");
     maxFirstMintPerAddress = _maxFirstMintPerAddress;
-  }
-
-  /**
-    * @dev Set token URI
-    * Accessible by only Sapien governance
-    */
-  function setTokenURI(
-    uint256 _tokenID,
-    string memory _tokenURI
-  ) external override onlyGovernance {
-    super._setTokenURI(_tokenID, _tokenURI);
   }
 
   /**
@@ -182,7 +171,9 @@ contract Passport is IPassport, OwnableUpgradeable, ERC721URIStorageUpgradeable,
     if (_msgSender() != roleManager.governance() && !isTransferable) {
       revert("Passport: TOKEN_NOT_TRANSFERABLE");
     }
+
     require(!isSigned[_tokenID], "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
+    ERC721EnumerableUpgradeable._beforeTokenTransfer(_from, _to, _tokenID);
   }
 
   /**
