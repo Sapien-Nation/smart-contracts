@@ -86,6 +86,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     uint256 _endTime
   ) external whenNotPaused nonReentrant {
     require(passContract.ownerOf(_tokenID) == msg.sender, "PassportAuction: CALLER_NO_TOKEN_OWNER");
+    require(!msg.sender.isContract(), "PassportAuction: CALLER_CONTRACT_ACCOUNT");
     _createAuction(_tokenID, msg.sender, _floorPrice, _startTime, _endTime);
   }
 
@@ -135,6 +136,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     AuctionInfo memory auction = auctions[_tokenID];
     require(auction.owner != address(0), "PassportAuction: AUCTION_NOT_EXIST");
     require(auction.endTime > block.timestamp, "PassportAuction: AUCTION_ENDED");
+    require(!msg.sender.isContract(), "PassportAuction: CALLER_CONTRACT_ACCOUNT");
     require(msg.sender != auction.owner, "PassportAuction: SELF_BID_NOT_ALLOWED");
     require(bidIds[_tokenID][msg.sender] == 0, "PassportAuction: CALLER_ALREADY_BID");
     require(_bidAmount >= auction.floorPrice, "PassportAuction: BID_AMOUNT_INVALID");
@@ -181,7 +183,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     // delete bid ids
     BidInfo[] memory bidList = bids[_tokenID];
 
-    for (uint256 i = 0; i < bidList.length; i++) {
+    for (uint256 i = 1; i < bidList.length; i++) {
       delete bidIds[_tokenID][bidList[i].bidder];
       // refund
       // TODO check pull-over-push pattern
