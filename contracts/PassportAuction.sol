@@ -20,6 +20,8 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   IRoleManager public roleManager;
   // SPN token address
   IERC20 public spn;
+  // Bps
+  uint16 public royaltyFee = 500;
 
   struct AuctionInfo {
     address owner;
@@ -38,14 +40,15 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   mapping(uint256 => AuctionInfo) public auctions;
   // Passport id => bid info (first element is empty)
   mapping(uint256 => BidInfo[]) public bids;
-  // Passport id => bidder address => bid info index
+  // Passport id => bidder address => bid info id
   mapping(uint256 => mapping(address => uint256)) public bidIds;
 
   event LogAuctionCreate(uint256 indexed tokenID, address indexed owner, uint256 floorPrice);
   event LogAuctionDelete(uint256 indexed tokenID, address indexed owner);
-  event LogAuctionEnd(uint256 indexed tokenID, address indexed bidder);
+  event LogAuctionEnd(uint256 indexed tokenID, address indexed winner);
   event LogBidPlace(uint256 indexed tokenID, address indexed bidder, uint256 bidAmount);
   event LogBidCancel(uint256 indexed tokenID, address indexed bidder);
+  event LogSweep(address to, uint256 amount);
 
   constructor(
     IRoleManager _roleManager,
@@ -73,6 +76,16 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   function setRoleManager(address _roleManager) external onlyOwner {
     require(_roleManager != address(0), "PassportAuction: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
+  }
+
+  /**
+    * @dev Set royalty fee
+    * Accessible by only governance
+    * `_royaltyFee` must be less than 1000
+    */
+  function setRoyaltyFee(uint16 _royaltyFee) external onlyGovernance {
+    require(_royaltyFee <= 1000, "PassportAuction: ROYALTY_FEE_INVALID");
+    royaltyFee = _royaltyFee;
   }
 
   /**
@@ -112,7 +125,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     if (bids[_tokenID].length != 0) {
       delete bids[_tokenID];
     }
-
+    // Push first bid info empty
     bids[_tokenID].push(BidInfo({
       bidder: address(0),
       bidAmount: 0,
@@ -145,6 +158,8 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
       bidAmount: _bidAmount,
       bidTime: block.timestamp
     }));
+    bidIds[_tokenID][msg.sender] = bids[_tokenID].length - 1;
+
     spn.safeTransferFrom(msg.sender, address(this), _bidAmount);
 
     emit LogBidPlace(_tokenID, msg.sender, _bidAmount);
@@ -165,7 +180,9 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     // never leave hole in array
     bidList[bidID] = bidList[bidList.length - 1];
     bidList.pop();
+    // delete bid id
     bidIds[_tokenID][msg.sender] = 0;
+    bidIds[_tokenID][bidList[bidID].bidder] = bidID;
     // refund
     spn.safeTransfer(msg.sender, bidAmount);
 
@@ -175,7 +192,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   /**
     * @dev Cancel auction for `_tokenID`
     * `_tokenID` must be auctioned
-   */
+    */
   function cancelAuction(uint256 _tokenID) external nonReentrant {
     AuctionInfo memory auction = auctions[_tokenID];
     require(auction.owner == msg.sender, "PassportAuction: CALLER_NO_AUCTION_OWNER__TOKEN_ID_INVALID");
@@ -194,6 +211,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     delete bids[_tokenID];
     // delete auction
     delete auctions[_tokenID];
+
     // return passport
     passContract.safeTransferFrom(address(this), auction.owner, _tokenID);
 
@@ -231,7 +249,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     // delete auction
     delete auctions[_tokenID];
 
-    spn.safeTransfer(auction.owner, bid.bidAmount);
+    spn.safeTransfer(auction.owner, bid.bidAmount * (10000 - royaltyFee) / 10000);
     passContract.safeTransferFrom(address(this), bid.bidder, _tokenID);
 
     emit LogAuctionEnd(_tokenID, bid.bidder);
@@ -249,5 +267,20 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     */
   function unpause() external onlyGovernance {
     _unpause();
+  }
+
+  /**
+   * @dev Transfer `_amount` to `_to`
+   * Accessible by only Sapien governance
+   */
+  function sweep(
+    address _to,
+    uint256 _amount
+  ) external onlyGovernance {
+    require(_to != address(0), "PassportAuction: RECEIVER_ADDRESS_INVALID");
+    require(_amount != 0, "PassportAuction: SWEEP_AMOUNT_INVALID");
+    spn.safeTransfer(_to, _amount);
+
+    emit LogSweep(_to, _amount);
   }
 }
