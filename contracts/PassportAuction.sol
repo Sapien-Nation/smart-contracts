@@ -177,12 +177,20 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     require(bidID != 0, "PassportAuction: CALLER_NO_BID");
     BidInfo[] storage bidList = bids[_tokenID];
     uint256 bidAmount = bidList[bidID].bidAmount;
-    // never leave hole in array
-    bidList[bidID] = bidList[bidList.length - 1];
-    bidList.pop();
-    // delete bid id
-    bidIds[_tokenID][msg.sender] = 0;
-    bidIds[_tokenID][bidList[bidID].bidder] = bidID;
+    if (bidID != bidList.length - 1) {
+      // never leave hole in array
+      bidList[bidID] = bidList[bidList.length - 1];
+      bidList.pop();
+      // delete bid id
+      bidIds[_tokenID][msg.sender] = 0;
+      bidIds[_tokenID][bidList[bidID].bidder] = bidID;
+    } else {
+      // never leave hole in array
+      bidList.pop();
+      // delete bid id
+      bidIds[_tokenID][msg.sender] = 0;
+    }
+
     // refund
     spn.safeTransfer(msg.sender, bidAmount);
 
@@ -235,7 +243,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     BidInfo memory bid = bidList[_bidID];
     require(bid.bidder != address(0), "PassportAuction: BID_ID_INVALID");
 
-    for (uint256 i = 0; i < bidList.length; i++) {
+    for (uint256 i = 1; i < bidList.length; i++) {
       delete bidIds[_tokenID][bidList[i].bidder];
       if (i != _bidID) {
         // refund
@@ -282,5 +290,12 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
     spn.safeTransfer(_to, _amount);
 
     emit LogSweep(_to, _amount);
+  }
+
+  /**
+    * @dev Return bid list for `_tokenID`
+   */
+  function getBidList(uint256 _tokenID) external view returns(BidInfo[] memory) {
+    return bids[_tokenID];
   }
 }
