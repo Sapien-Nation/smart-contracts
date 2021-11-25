@@ -166,7 +166,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   }
 
   /**
-    * @dev Place bid for `_tokenID`
+    * @dev Cancel bid for `_tokenID`
     * `_tokenID` must be auctioned
    */
   function cancelBid(uint256 _tokenID) external nonReentrant {
