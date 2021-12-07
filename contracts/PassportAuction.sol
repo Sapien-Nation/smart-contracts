@@ -237,7 +237,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   ) external nonReentrant {
     AuctionInfo memory auction = auctions[_tokenID];
     require(auction.owner == msg.sender, "PassportAuction: CALLER_NO_AUCTION_OWNER__TOKEN_ID_INVALID");
-    require(auction.endTime > block.timestamp, "PassportAuction: AUCTION_ENDED");
+    require(auction.endTime <= block.timestamp, "PassportAuction: AUCTION_GOING");
     BidInfo[] memory bidList = bids[_tokenID];
     require(_bidID < bidList.length, "PassportAuction: BID_ID_INVALID");
     BidInfo memory bid = bidList[_bidID];

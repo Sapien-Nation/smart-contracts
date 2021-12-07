@@ -1,5 +1,5 @@
 import { deployMockContract } from '@ethereum-waffle/mock-contract';
-import { ethers } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { expect } from 'chai';
 import { duration } from './helpers/time';
 
@@ -121,6 +121,9 @@ describe('PassportAuction', async () => {
       await passport.mock['safeTransferFrom(address,address,uint256)'].withArgs(auction.address, bob.address, 1).returns();
 
       await auction.connect(bob).placeBid(1, ethers.utils.parseEther('1200'));
+      // 1 day pass
+      await network.provider.send("evm_increaseTime", [duration.days(1)]);
+      await network.provider.send("evm_mine");
       await auction.connect(alice).endAuction(1, 1);
       await auction.getBidList(1).then((res: any) => {
         expect(res.length).to.eq(0);
@@ -128,7 +131,6 @@ describe('PassportAuction', async () => {
       await auction.auctions(1).then((res: any) => {
         expect(res.owner).to.eq(ethers.constants.AddressZero);
       });
-
     });
   });
 });
