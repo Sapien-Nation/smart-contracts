@@ -133,10 +133,14 @@ contract PassportSale is Ownable, Pausable {
   ) external saleIsOpen {
     bool signed = passContract.isSigned(_tokenID);
     require(!signed, "PassportSale: PASSPORT_SIGNED");
-
     require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
-    _setPrice(_tokenID, _priceEth, _priceSPN);
+
     PassportSaleInfo storage pSale = passportSales[_tokenID];
+    // clear prices
+    pSale.priceEth = 0;
+    pSale.priceSPN = 0;
+
+    _setPrice(_tokenID, _priceEth, _priceSPN);
     pSale.seller = msg.sender;
     pSale.isOpenForSale = true;
 
@@ -168,9 +172,7 @@ contract PassportSale is Ownable, Pausable {
     * `_tokenID` must exist
     * `_tokenID` must not be signed
     */
-  function closeForSale(
-    uint256 _tokenID
-  ) public {
+  function closeForSale(uint256 _tokenID) public {
     require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
     passportSales[_tokenID].isOpenForSale = false;
 
@@ -232,7 +234,10 @@ contract PassportSale is Ownable, Pausable {
    * @dev Transfer `_token` all amount to `_to`
    * Accessible by only Sapien governance
    */
-  function sweep(address _token, address _to) external onlyGovernance {
+  function sweep(
+    address _token,
+    address _to
+  ) external onlyGovernance {
     require(_token != address(0), "PassportSale: TOKEN_ADDRESS_INVALID");
     uint256 amount = IERC20(_token).balanceOf(address(this));
     IERC20(_token).safeTransfer(_to, amount);
