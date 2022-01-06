@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -10,7 +11,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IPassport.sol";
 import "./interfaces/IRoleManager.sol";
 
-contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
+contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver {
   using Address for address;
   using SafeERC20 for IERC20;
 
@@ -66,6 +67,18 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard {
   modifier onlyGovernance() {
     require(msg.sender == roleManager.governance(), "PassportAuction: CALLER_NO_GOVERNANCE");
     _;
+  }
+
+  /**
+    * @dev Override {IERC721Receiver-onERC721Received}
+   */
+  function onERC721Received(
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes calldata _data
+  ) external override returns (bytes4) {
+    return this.onERC721Received.selector;
   }
 
   /**
