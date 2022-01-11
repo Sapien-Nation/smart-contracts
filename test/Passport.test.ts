@@ -59,7 +59,7 @@ describe('Passport', async () => {
         .to.be.revertedWith('Passport: TOKEN_NOT_TRANSFERABLE');
     });
     it('governance wallet can transfer even when \'isTransferable\' is false', async () => {
-      await passport.connect(gov).safeTransferFrom(gov.address, carol.address, 4);
+      await passport.connect(gov).transferFrom(gov.address, carol.address, 4);
       await passport.tokenOfOwnerByIndex(carol.address, 0).then((res: any) => {
         expect(res.toString()).to.eq('3');
       });

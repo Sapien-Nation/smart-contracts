@@ -21,8 +21,10 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
   IRoleManager public roleManager;
   // SPN token address
   IERC20 public spn;
-  // Bps
+  // Basis Point
   uint16 public royaltyFee = 500;
+  // Maximum auction duration
+  uint256 public maxDuration = 183 days;
 
   struct AuctionInfo {
     address owner;
@@ -82,6 +84,16 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
   }
 
   /**
+    * @dev Set auction max duration period in seconds
+    * Accessible by only `owner`
+    * `_maxDuration` must not be zero
+    */
+  function setMaxDuration(uint256 _maxDuration) external onlyGovernance {
+    require(_maxDuration > 0, "PassportAuction: MAX_DURATION_INVALID");
+    maxDuration = _maxDuration;
+  }
+
+  /**
     * @dev Set Role Manager contract address
     * Accessible by only `owner`
     * `_roleManager` must not be zero address
@@ -126,8 +138,8 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
     // check if auction already exists
     require(auctions[_tokenID].owner == address(0), "PassportAuction: AUCTION_ALREADY_CREATED");
     require(_startTime >= block.timestamp, "PassportAuction: START_TIME_INVALID");
-    // TODO check minimum auction duration
     require(_endTime > _startTime, "PassportAuction: END_TIME_INVALID");
+    require(_startTime + maxDuration >= _endTime, "PassportAuction: MAX_DURATION_EXCEEDED");
     auctions[_tokenID] = AuctionInfo({
       owner: _tokenOwner,
       floorPrice: _floorPrice,

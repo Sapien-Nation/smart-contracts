@@ -122,7 +122,7 @@ describe('PassportAuction', async () => {
 
       await auction.connect(bob).placeBid(1, ethers.utils.parseEther('1200'));
       // 1 day pass
-      await network.provider.send("evm_increaseTime", [duration.days(1)]);
+      await network.provider.send("evm_increaseTime", [duration.days(2)]);
       await network.provider.send("evm_mine");
       await auction.connect(alice).endAuction(1, 1);
       await auction.getBidList(1).then((res: any) => {
