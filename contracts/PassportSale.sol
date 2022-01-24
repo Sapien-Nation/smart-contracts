@@ -231,6 +231,20 @@ contract PassportSale is Ownable, Pausable {
   }
 
   /**
+    * @dev Pause the contract
+    */
+  function pause() external onlyGovernance {
+    _pause();
+  }
+
+  /**
+    * @dev Unpause the contract
+    */
+  function unpause() external onlyGovernance {
+    _unpause();
+  }
+
+  /**
    * @dev Transfer `_token` all amount to `_to`
    * Accessible by only Sapien governance
    */
