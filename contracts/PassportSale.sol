@@ -4,11 +4,12 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract PassportSale is Ownable, Pausable {
+contract PassportSale is Ownable, Pausable, ReentrancyGuard {
   using SafeERC20 for IERC20;
   // Role Manager contract address
   IRoleManager public roleManager;
@@ -190,7 +191,7 @@ contract PassportSale is Ownable, Pausable {
   function purchase(
     uint256 _tokenID,
     uint8 _ethOrSPN
-  ) external saleIsOpen {
+  ) external saleIsOpen nonReentrant {
     PassportSaleInfo memory pSale = passportSales[_tokenID];
 
     bool signed = passContract.isSigned(_tokenID);

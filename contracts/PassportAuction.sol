@@ -45,6 +45,8 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
   mapping(uint256 => BidInfo[]) public bids;
   // Passport id => bidder address => bid info id
   mapping(uint256 => mapping(address => uint256)) public bidIds;
+  // wallet address => SPN amount available for claim
+  mapping(address => uint256) public claimables;
 
   event LogAuctionCreate(uint256 indexed tokenID, address indexed owner, uint256 floorPrice);
   event LogAuctionDelete(uint256 indexed tokenID, address indexed owner);
@@ -52,6 +54,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
   event LogBidPlace(uint256 indexed tokenID, address indexed bidder, uint256 bidAmount);
   event LogBidCancel(uint256 indexed tokenID, address indexed bidder);
   event LogSweep(address to, uint256 amount);
+  event LogClaim(address to, uint256 amount);
 
   constructor(
     IRoleManager _roleManager,
@@ -75,10 +78,10 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
     * @dev Override {IERC721Receiver-onERC721Received}
    */
   function onERC721Received(
-    address _operator,
-    address _from,
-    uint256 _tokenId,
-    bytes calldata _data
+    address,
+    address,
+    uint256,
+    bytes calldata
   ) external override returns (bytes4) {
     return this.onERC721Received.selector;
   }
@@ -236,8 +239,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
     for (uint256 i = 1; i < bidList.length; i++) {
       delete bidIds[_tokenID][bidList[i].bidder];
       // refund
-      // TODO check pull-over-push pattern
-      spn.safeTransfer(bidList[i].bidder, bidList[i].bidAmount);
+      claimables[bidList[i].bidder] += bidList[i].bidAmount;
     }
 
     // delete bid list
@@ -272,8 +274,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
       delete bidIds[_tokenID][bidList[i].bidder];
       if (i != _bidID) {
         // refund
-        // TODO check pull-over-push pattern
-        spn.safeTransfer(bidList[i].bidder, bidList[i].bidAmount);
+        claimables[bidList[i].bidder] += bidList[i].bidAmount;
       }
     }
 
@@ -286,6 +287,18 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
     passContract.safeTransferFrom(address(this), bid.bidder, _tokenID);
 
     emit LogAuctionEnd(_tokenID, bid.bidder);
+  }
+
+  /**
+    * @dev Claim funds from auction contract
+   */
+  function claim(uint256 _amount) external nonReentrant {
+    uint256 availAmount = claimables[msg.sender];
+    require(availAmount >= _amount, "PassportAuction: INSUFFICIENT_FUNDS");
+    claimables[msg.sender] = availAmount - _amount;
+    spn.safeTransfer(msg.sender, _amount);
+
+    emit LogClaim(msg.sender, _amount);
   }
 
   /**
