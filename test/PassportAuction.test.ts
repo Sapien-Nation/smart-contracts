@@ -114,6 +114,23 @@ describe('PassportAuction', async () => {
     });
   });
 
+  describe('Cancel auction', async () => {
+    it('expect to cancel auction', async () => {
+      // mocks
+      await passport.mock.ownerOf.withArgs(3).returns(alice.address);
+      await passport.mock['safeTransferFrom(address,address,uint256)'].withArgs(alice.address, auction.address, 3).returns();
+      await spn.mock.transferFrom.withArgs(bob.address, auction.address, ethers.utils.parseEther('1200')).returns(true);
+      await passport.mock['safeTransferFrom(address,address,uint256)'].withArgs(auction.address, alice.address, 3).returns();
+
+      currentTime = Math.floor(Date.now() / 1000);
+      await auction.connect(alice).createAuction(3, ethers.utils.parseEther('1000'), currentTime + 40, currentTime + 20 + duration.days(1));
+      // bob places bid
+      await auction.connect(bob).placeBid(3, ethers.utils.parseEther('1200'));
+      await auction.connect(alice).cancelAuction(3);
+      expect((await auction.claimables(bob.address)).toString()).to.eq(ethers.utils.parseEther('1200'));
+    });
+  });
+
   describe('End auction', async () => {
     it('expect to end auction', async () => {
       // mocks
