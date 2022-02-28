@@ -116,13 +116,14 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
+      uint256 purchased = firstPurchases[account];
       // check first purchase limit for non-governance accounts
-      if (account == gov || (account != gov && firstPurchases[account] + 1 <= maxFirstMintPerAddress)) {
+      if (account == gov || purchased + 1 <= maxFirstMintPerAddress) {
         super._safeMint(account, newID);
         creators[newID] = gov;
-        passportID++;
+        passportID = newID;
         // increase first purchased amount
-        firstPurchases[account]++;
+        firstPurchases[account] = purchased + 1;
 
         emit LogMint(newID, account);
       }

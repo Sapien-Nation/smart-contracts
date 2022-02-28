@@ -7,7 +7,7 @@
       "hash": "0xac3ee1337e91718e0940022d645bbf25bdc4a2ccc16b80e9acc7c37a4b65fcad",
       "type": 0,
       "accessList": null,
-      "blockHash": "0xea3968f7be0756ce5af1467ac3425128189dbb08732b3764bbef1dc3f5d92db8",
+      "blockHash": "0xd929634a9af11248f1d9c4682c60c092485816459206b967b4e18e1196465929",
       "blockNumber": 5,
       "transactionIndex": 0,
       "confirmations": 1,
@@ -406,7 +406,7 @@
           {
             "contract": "Passport",
             "label": "roleManager",
-            "type": "t_contract(IRoleManager)10154",
+            "type": "t_contract(IRoleManager)10265",
             "src": "contracts\\Passport.sol:14"
           },
           {
@@ -450,7 +450,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_contract(IRoleManager)10154": {
+          "t_contract(IRoleManager)10265": {
             "label": "contract IRoleManager"
           },
           "t_uint16": {
