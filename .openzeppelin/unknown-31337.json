@@ -7,7 +7,7 @@
       "hash": "0xac3ee1337e91718e0940022d645bbf25bdc4a2ccc16b80e9acc7c37a4b65fcad",
       "type": 0,
       "accessList": null,
-      "blockHash": "0xd929634a9af11248f1d9c4682c60c092485816459206b967b4e18e1196465929",
+      "blockHash": "0x40ccc96c310ef7bcd0e9131607f6fe5a9e020c0136f65ba80276d44791d1353d",
       "blockNumber": 5,
       "transactionIndex": 0,
       "confirmations": 1,
@@ -272,9 +272,9 @@
         }
       }
     },
-    "82b02ed2ad045b4514713e575b489cb9c86a7ed3d561fb9daf72aa8bae0eea88": {
+    "76f678411dea61c56c1fc9166a23da7df714fa416c9dd23c45bdf355fbfeedf1": {
       "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-      "txHash": "0x53c79219dbf98d59785e2bf46f0743fe19f39ce7e6a0f94eb5c6c97f5ed2ebaf",
+      "txHash": "0x21d4dbf2f009306a6196998cc10e706271e76f855b836548fc2dc8ef7e747e32",
       "layout": {
         "storage": [
           {
@@ -401,56 +401,56 @@
             "contract": "Passport",
             "label": "passportID",
             "type": "t_uint256",
-            "src": "contracts\\Passport.sol:12"
+            "src": "contracts\\Passport.sol:14"
           },
           {
             "contract": "Passport",
             "label": "roleManager",
-            "type": "t_contract(IRoleManager)10265",
-            "src": "contracts\\Passport.sol:14"
+            "type": "t_contract(IRoleManager)10278",
+            "src": "contracts\\Passport.sol:16"
           },
           {
             "contract": "Passport",
             "label": "maxFirstMintPerAddress",
             "type": "t_uint16",
-            "src": "contracts\\Passport.sol:16"
+            "src": "contracts\\Passport.sol:18"
           },
           {
             "contract": "Passport",
-            "label": "isTransferable",
+            "label": "NGTransferable",
             "type": "t_bool",
-            "src": "contracts\\Passport.sol:18"
+            "src": "contracts\\Passport.sol:20"
           },
           {
             "contract": "Passport",
             "label": "baseTokenURI",
             "type": "t_string_storage",
-            "src": "contracts\\Passport.sol:20"
+            "src": "contracts\\Passport.sol:22"
           },
           {
             "contract": "Passport",
             "label": "isSigned",
             "type": "t_mapping(t_uint256,t_bool)",
-            "src": "contracts\\Passport.sol:23"
+            "src": "contracts\\Passport.sol:25"
           },
           {
             "contract": "Passport",
             "label": "creators",
             "type": "t_mapping(t_uint256,t_address)",
-            "src": "contracts\\Passport.sol:25"
+            "src": "contracts\\Passport.sol:27"
           },
           {
             "contract": "Passport",
             "label": "firstPurchases",
-            "type": "t_mapping(t_address,t_uint256)",
-            "src": "contracts\\Passport.sol:27"
+            "type": "t_mapping(t_address,t_uint16)",
+            "src": "contracts\\Passport.sol:29"
           }
         ],
         "types": {
           "t_uint256": {
             "label": "uint256"
           },
-          "t_contract(IRoleManager)10265": {
+          "t_contract(IRoleManager)10278": {
             "label": "contract IRoleManager"
           },
           "t_uint16": {
@@ -471,8 +471,8 @@
           "t_address": {
             "label": "address"
           },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
+          "t_mapping(t_address,t_uint16)": {
+            "label": "mapping(address => uint16)"
           },
           "t_mapping(t_address,t_mapping(t_uint256,t_uint256))": {
             "label": "mapping(address => mapping(uint256 => uint256))"
@@ -485,6 +485,9 @@
           },
           "t_array(t_uint256)46_storage": {
             "label": "uint256[46]"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
           },
           "t_mapping(t_address,t_mapping(t_address,t_bool))": {
             "label": "mapping(address => mapping(address => bool))"

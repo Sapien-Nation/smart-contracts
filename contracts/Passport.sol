@@ -14,8 +14,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   IRoleManager public roleManager;
   // Maximum number of passports that one wallet can purchase at the first sale
   uint16 public maxFirstMintPerAddress;
-  // Non-governance wallets can transfer tokens flag
-  bool public isTransferable;
+  // Bool flag that shows non-governance wallets can transfer tokens
+  bool public NGTransferable;
   // Base token URI
   string public baseTokenURI;
 
@@ -24,10 +24,11 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   // Passport ID => passport creator address
   mapping(uint256 => address) public override creators;
   // address => number of passports at the first sale
-  mapping(address => uint256) public firstPurchases;
+  mapping(address => uint16) public firstPurchases;
 
   event LogSign(uint256 indexed tokenID);
   event LogMint(uint256 indexed tokenID, address indexed account);
+  event LogFirstMintLimitExceed(address indexed account);
 
   function initialize(
     string memory _name,
@@ -76,11 +77,11 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   }
 
   /**
-    * @dev Set `isTransferable`
+    * @dev Set `NGTransferable`
     * Accessible by only Sapien governance
     */
-  function setIsTransferable(bool _isTransferable) external onlyGovernance {
-    isTransferable = _isTransferable;
+  function setNGTransferable(bool _NGTransferable) external onlyGovernance {
+    NGTransferable = _NGTransferable;
   }
 
   /**
@@ -116,7 +117,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
-      uint256 purchased = firstPurchases[account];
+      uint16 purchased = firstPurchases[account];
       // check first purchase limit for non-governance accounts
       if (account == gov || purchased + 1 <= maxFirstMintPerAddress) {
         super._safeMint(account, newID);
@@ -126,6 +127,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
         firstPurchases[account] = purchased + 1;
 
         emit LogMint(newID, account);
+      } else {
+        emit LogFirstMintLimitExceed(account);
       }
     }
   }
@@ -160,7 +163,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
 
   /**
     * @dev Tokens are non-transferable when:
-    * - caller is non-governance && `isTransferable` is false
+    * - caller is non-governance && `NGTransferable` is false
     * - signed passport
     * - contract is paused
     */
@@ -169,8 +172,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     address _to,
     uint256 _tokenID
   ) internal override whenNotPaused {
-    if (_msgSender() != roleManager.governance() && !isTransferable) {
-      revert("Passport: TOKEN_NOT_TRANSFERABLE");
+    if (_msgSender() != roleManager.governance() && !NGTransferable) {
+      revert("Passport: NG_NOT_TRANSFERABLE");
     }
 
     require(!isSigned[_tokenID], "Passport: SIGNED_PASSPORT_NOT_TRANSFERABLE");
