@@ -16,7 +16,7 @@ async function setup() {
   const spn = await deployMockContract(owner, IERC20.abi);
 
   const PassportSale = await ethers.getContractFactory('PassportSale');
-  const passSale = await PassportSale.deploy(roleManager.address, passport.address, weth.address, spn.address);
+  const passSale = await PassportSale.deploy(roleManager.address, passport.address, weth.address, spn.address, Math.floor(Date.now() / 1000) + 10);
   await passSale.deployed();
   return {roleManager, passport, weth, spn, passSale, owner, gov, alice, bob, carol};
 }

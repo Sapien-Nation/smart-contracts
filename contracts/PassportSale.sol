@@ -21,8 +21,8 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
   IERC20 public spn;
   // Royalty fee in BPS
   uint16 public royaltyFeeBps = 500;
-  // Public sale start date, 11/19/2021
-  uint256 public saleStartDate = 1637280000;
+  // Public sale start date
+  uint256 public saleStartDate;
 
   // Passport ID => passport info
   mapping(uint256 => PassportSaleInfo) public passportSales;
@@ -44,18 +44,23 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
     IRoleManager _roleManager,
     IPassport _passContract,
     IERC20 _weth,
-    IERC20 _spn
+    IERC20 _spn,
+    uint256 _saleStartDate
   ) {
     require(
       address(_roleManager) != address(0) &&
       address(_passContract) != address(0) &&
       address(_weth) != address(0) &&
       address(_spn) != address(0),
-      "PassportSale: ADDRESS_INVALID");
+      "PassportSale: ADDRESS_INVALID"
+    );
+    require(_saleStartDate >= block.timestamp, "PassportSale: SALE_START_DATE_INVALID");
+
     roleManager = _roleManager;
     passContract = _passContract;
     weth = _weth;
     spn = _spn;
+    saleStartDate = _saleStartDate;
   }
 
   modifier onlyGovernance() {
@@ -110,7 +115,7 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
     uint256 _tokenID,
     uint256 _priceEth,
     uint256 _priceSPN
-  ) public saleIsOpen {
+  ) external saleIsOpen {
     bool signed = passContract.isSigned(_tokenID);
     require(!signed, "PassportSale: PASSPORT_SIGNED");
 
@@ -173,9 +178,10 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
     * `_tokenID` must exist
     * `_tokenID` must not be signed
     */
-  function closeForSale(uint256 _tokenID) public {
+  function closeForSale(uint256 _tokenID) external {
     require(msg.sender == passContract.ownerOf(_tokenID), "PassportSale: CALLER_NO_TOKEN_OWNER__ID_INVALID");
-    passportSales[_tokenID].isOpenForSale = false;
+    // passportSales[_tokenID].isOpenForSale = false;
+    delete passportSales[_tokenID];
 
     emit LogCloseForSale(_tokenID);
   }
@@ -216,7 +222,7 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
     uint256 _tokenID,
     uint8 _ethOrSPN
   ) private {
-    PassportSaleInfo storage pSale = passportSales[_tokenID];
+    PassportSaleInfo memory pSale = passportSales[_tokenID];
     // if `_ethOrSPN` is 0 Eth, otherwise SPN
     uint256 price = _ethOrSPN == 0 ? pSale.priceEth: pSale.priceSPN;
     require(price > 0, "PassportSale: PASSPORT_PRICE_INVALID");
@@ -226,7 +232,8 @@ contract PassportSale is Ownable, Pausable, ReentrancyGuard {
     token.safeTransferFrom(_buyer, passContract.creators(_tokenID), royaltyFee);
     token.safeTransferFrom(_buyer, _tokenOwner, price - royaltyFee);
     passContract.safeTransferFrom(_tokenOwner, _buyer, _tokenID);
-    pSale.isOpenForSale = false;
+    // pSale.isOpenForSale = false;
+    delete passportSales[_tokenID];
 
     emit LogPurchase(_tokenID, _tokenOwner, _buyer);
   }
