@@ -209,15 +209,13 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
       // never leave hole in array
       bidList[bidID] = bidList[bidList.length - 1];
       bidList.pop();
-      // delete bid id
-      bidIds[_tokenID][msg.sender] = 0;
       bidIds[_tokenID][bidList[bidID].bidder] = bidID;
     } else {
       // never leave hole in array
       bidList.pop();
-      // delete bid id
-      bidIds[_tokenID][msg.sender] = 0;
     }
+    // delete bid id
+    bidIds[_tokenID][msg.sender] = 0;
 
     // refund
     spn.safeTransfer(msg.sender, bidAmount);
@@ -261,7 +259,7 @@ contract PassportAuction is Ownable, Pausable, ReentrancyGuard, IERC721Receiver 
   function endAuction(
     uint256 _tokenID,
     uint256 _bidID
-  ) external nonReentrant {
+  ) external whenNotPaused nonReentrant {
     AuctionInfo memory auction = auctions[_tokenID];
     require(auction.owner == msg.sender, "PassportAuction: CALLER_NO_AUCTION_OWNER__TOKEN_ID_INVALID");
     require(auction.endTime <= block.timestamp, "PassportAuction: AUCTION_GOING");
