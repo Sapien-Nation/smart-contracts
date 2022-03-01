@@ -94,6 +94,16 @@ describe('PassportSale', async () => {
         await expect(passSale.connect(alice).openForSale(1, 0, 0))
           .to.be.revertedWith('PassportSale: PRICES_INVALID');
       });
+      it('ownership changed', async () => {
+        // mocks
+        await passport.mock.ownerOf.withArgs(1).returns(bob.address);
+
+        await expect(passSale.connect(bob).setPrice(1, ethers.utils.parseEther('2'), 0))
+          .to.be.revertedWith('PassportSale: OWNERSHIP_CHANGED');
+
+        // mocks
+        await passport.mock.ownerOf.withArgs(1).returns(alice.address);
+      });
     });
   });
 
