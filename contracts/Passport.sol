@@ -12,8 +12,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   uint256 public passportID;
   // Role Manager contract address
   IRoleManager public roleManager;
-  // Maximum number of passports that one wallet can purchase at the first sale
-  uint16 public maxFirstMintPerAddress;
   // Bool flag that shows non-governance wallets can transfer tokens
   bool public NGTransferable;
   // Base token URI
@@ -23,8 +21,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   mapping(uint256 => bool) public override isSigned;
   // Passport ID => passport creator address
   mapping(uint256 => address) public override creators;
-  // address => number of passports at the first sale
-  mapping(address => uint16) public firstPurchases;
 
   event LogSign(uint256 indexed tokenID);
   event LogMint(uint256 indexed tokenID, address indexed account);
@@ -50,7 +46,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
     baseTokenURI = _baseTokenURI;
-    maxFirstMintPerAddress = 5;
   }
 
   modifier onlyGovernance() {
@@ -85,16 +80,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   }
 
   /**
-    * @dev Set `maxFirstMintPerAddress`
-    * Accessible by only Sapien governance
-    * `_maxFirstMintPerAddress` must not be zero
-    */
-  function setMaxFirstMintPerAddress(uint16 _maxFirstMintPerAddress) external override onlyGovernance {
-    require(_maxFirstMintPerAddress > 0, "Passport: MAX_FIRST_MINT_INVALID");
-    maxFirstMintPerAddress = _maxFirstMintPerAddress;
-  }
-
-  /**
     * @dev Sign the passport
     * Signed passports are not for sale
     * Accessible by only Sapien governance
@@ -117,19 +102,11 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
-      uint16 purchased = firstPurchases[account];
-      // check first purchase limit for non-governance accounts
-      if (account == gov || purchased + 1 <= maxFirstMintPerAddress) {
-        super._safeMint(account, newID);
-        creators[newID] = gov;
-        passportID = newID;
-        // increase first purchased amount
-        firstPurchases[account] = purchased + 1;
+      super._safeMint(account, newID);
+      creators[newID] = gov;
+      passportID = newID;
 
-        emit LogMint(newID, account);
-      } else {
-        emit LogFirstMintLimitExceed(account);
-      }
+      emit LogMint(newID, account);
     }
   }
 

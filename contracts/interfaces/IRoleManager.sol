@@ -8,7 +8,7 @@ interface IRoleManager is IAccessControlEnumerable {
 
   function renounceGovernance() external ;
 
-  function governance() external view returns (address governance);
+  function governance() external view returns (address);
 
   function addMarketplace(address _account) external;
 

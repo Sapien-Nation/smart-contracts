@@ -24,9 +24,7 @@ describe('Passport', async () => {
       ({roleManager, passport, owner, gov, alice, bob, carol} = await setup());
       await passport.connect(gov).mint([alice.address, bob.address, carol.address, gov.address]);
       await passport.connect(gov).mint([alice.address, alice.address, alice.address, alice.address, alice.address, alice.address]);
-      // alice account first mint limit exceeds and skips last 2 mints
-      expect((await passport.firstPurchases(alice.address)).toString()).to.eq('5');
-      expect((await passport.passportID()).toString()).to.eq('8');
+      expect((await passport.passportID()).toString()).to.eq('10');
 
       expect(await passport.ownerOf(1)).to.eq(alice.address);
       expect(await passport.ownerOf(2)).to.eq(bob.address);
