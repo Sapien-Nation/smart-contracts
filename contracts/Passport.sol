@@ -19,6 +19,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
 
   // Passport ID => passport sign status
   mapping(uint256 => bool) public override isSigned;
+  // holder address => signed passport status, only 1 available
+  mapping(address => bool) public override holdSigned;
   // Passport ID => passport creator address
   mapping(uint256 => address) public override creators;
 
@@ -84,10 +86,14 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     * Signed passports are not for sale
     * Accessible by only Sapien governance
     * `_tokenID` must exist
+    * Every holder can own 1 signed passport at most
     */
   function sign(uint256 _tokenID) external override onlyGovernance {
-    require(_exists(_tokenID), "Passport: PASSPORT_ID_INVALID");
+    address tokenOwner = ownerOf(_tokenID);
+    require(!holdSigned[tokenOwner], "Passport: ALREADY_HOLD_SIGNED_PASSPORT");
+
     isSigned[_tokenID] = true;
+    holdSigned[tokenOwner] = true;
 
     emit LogSign(_tokenID);
   }

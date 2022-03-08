@@ -54,6 +54,10 @@ describe('Passport', async () => {
         await expect(passport.sign(1))
           .to.be.revertedWith('Passport: CALLER_NO_GOVERNANCE');
       });
+      it('holder already holds signed passport', async () => {
+        await expect(passport.connect(gov).sign(5))
+          .to.be.revertedWith('Passport: ALREADY_HOLD_SIGNED_PASSPORT');
+      });
     });
   });
 
