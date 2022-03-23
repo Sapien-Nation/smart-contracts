@@ -26,7 +26,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
 
   event LogSign(uint256 indexed tokenID);
   event LogMint(uint256 indexed tokenID, address indexed account);
-  event LogFirstMintLimitExceed(address indexed account);
 
   function initialize(
     string memory _name,
