@@ -169,4 +169,6 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   function _baseURI() internal view override returns (string memory) {
     return baseTokenURI;
   }
+
+  uint256[50] private __gap;
 }
