@@ -96,4 +96,23 @@ describe('Passport', async () => {
       expect(await passport.paused()).to.be.false;
     });
   });
+
+  describe('Burn', async () => {
+    it('expect to burn', async () => {
+      await expect(passport.connect(bob).burn(2))
+        .to.emit(passport, 'LogBurn')
+        .withArgs(2, bob.address);
+    });
+    describe('reverts if', async () => {
+      it('passport is signed', async () => {
+        await expect(passport.connect(alice).burn(1))
+          .to.be.revertedWith('Passport: SIGNED_NOT_BURNABLE');
+      });
+      it('contract is paused', async () => {
+        await passport.connect(gov).pause();
+        await expect(passport.connect(carol).burn(3))
+          .to.be.revertedWith('Pausable: paused');
+      });
+    });
+  });
 });

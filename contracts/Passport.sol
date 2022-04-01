@@ -27,6 +27,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
 
   event LogSign(uint256 indexed tokenID);
   event LogMint(uint256 indexed tokenID, address indexed account);
+  event LogBurn(uint256 indexed tokenID, address indexed account);
 
   function initialize(
     string memory _name,
@@ -131,6 +132,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   function burn(uint256 _tokenId) public virtual override whenNotPaused {
     require(!isSigned[_tokenId], "Passport: SIGNED_NOT_BURNABLE");
     ERC721BurnableUpgradeable.burn(_tokenId);
+
+    emit LogBurn(_tokenId, msg.sender);
   }
 
   /**
