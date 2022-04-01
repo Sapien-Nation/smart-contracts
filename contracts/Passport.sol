@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable {
+contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable {
   // Latest passport id starting from 1
   uint256 public passportID;
   // Role Manager contract address
@@ -35,6 +36,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   ) public initializer {
     __ERC721_init(_name, _symbol);
     __ERC721Enumerable_init();
+    __ERC721Burnable_init();
     __Ownable_init();
     __Pausable_init();
     __Passport_init_unchained(_baseTokenURI, _roleManager);
@@ -47,6 +49,12 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
     baseTokenURI = _baseTokenURI;
+  }
+
+  /**
+    * @dev See {IERC165-supportsInterface}.
+    */
+  function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165Upgradeable, ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
   }
 
   modifier onlyGovernance() {
@@ -116,6 +124,15 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   }
 
   /**
+    * @dev Burn passports
+    * Signed passport is not burnable
+    */
+  function burn(uint256 _tokenId) public virtual override whenNotPaused {
+    require(!isSigned[_tokenId], "Passport: SIGNED_NOT_BURNABLE");
+    ERC721BurnableUpgradeable.burn(_tokenId);
+  }
+
+  /**
     * @dev Override {ERC721Upgradeable-isApprovedForAll}.
     */
   function isApprovedForAll(
@@ -153,7 +170,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     address _from,
     address _to,
     uint256 _tokenID
-  ) internal override whenNotPaused {
+  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) whenNotPaused {
     if (_msgSender() != roleManager.governance() && !NGTransferable) {
       revert("Passport: NG_NOT_TRANSFERABLE");
     }
