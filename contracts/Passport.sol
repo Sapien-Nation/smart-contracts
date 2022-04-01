@@ -52,9 +52,10 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   }
 
   /**
-    * @dev See {IERC165-supportsInterface}.
+    * @dev Override {supportsInterface}.
     */
   function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165Upgradeable, ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
+    return interfaceId == type(IPassport).interfaceId || super.supportsInterface(interfaceId);
   }
 
   modifier onlyGovernance() {
