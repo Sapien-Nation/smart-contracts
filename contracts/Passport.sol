@@ -112,16 +112,14 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     * Accessible by only Sapien governance
     * Sapien governance become passport `creator`
     */
-  function mint(address[] memory _accounts) external override onlyGovernance whenNotPaused returns(uint256[] memory ids) {
+  function mint(address[] memory _accounts) external override onlyGovernance whenNotPaused {
     address gov = roleManager.governance();
-    ids = new uint256[](_accounts.length);
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
       super._safeMint(account, newID);
       creators[newID] = gov;
       passportID = newID;
-      ids[i] = newID;
 
       emit LogMint(newID, account);
     }
