@@ -14,5 +14,5 @@ interface IPassport is IERC721Upgradeable {
 
   function sign(uint256 _tokenID) external;
 
-  function mint(address[] memory _accounts) external;
+  function mint(address[] memory _accounts, string[] memory _tokenURIs) external;
 }

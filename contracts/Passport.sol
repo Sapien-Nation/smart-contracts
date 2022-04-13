@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable {
+contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, ERC721URIStorageUpgradeable {
   // Latest passport id starting from 1
   uint256 public passportID;
   // Role Manager contract address
@@ -26,7 +27,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   mapping(uint256 => address) public override creators;
 
   event LogSign(uint256 indexed tokenID);
-  event LogMint(uint256 indexed tokenID, address indexed account);
+  event LogMint(uint256 indexed tokenID, address indexed account, string tokenURI);
   event LogBurn(uint256 indexed tokenID, address indexed account);
 
   function initialize(
@@ -91,6 +92,17 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   }
 
   /**
+    * @dev Set token uri for `_tokenId`
+    * Accessible by only Sapien governance
+   */
+  function setTokenURI(
+    uint256 _tokenId,
+    string memory _tokenURI
+  ) external onlyGovernance {
+    ERC721URIStorageUpgradeable._setTokenURI(_tokenId, _tokenURI);
+  }
+
+  /**
     * @dev Sign the passport
     * Signed passports are not for sale
     * Accessible by only Sapien governance
@@ -112,16 +124,21 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     * Accessible by only Sapien governance
     * Sapien governance become passport `creator`
     */
-  function mint(address[] memory _accounts) external override onlyGovernance whenNotPaused {
+  function mint(
+    address[] memory _accounts,
+    string[] memory _tokenURIs
+  ) external override onlyGovernance whenNotPaused {
+    require(_accounts.length == _tokenURIs.length, "Passport: ARRAY_LENGTH_MISMATCH");
     address gov = roleManager.governance();
     for (uint256 i = 0; i < _accounts.length; i++) {
       address account = _accounts[i];
       uint256 newID = passportID + 1;
       super._safeMint(account, newID);
+      super._setTokenURI(newID, _tokenURIs[i]);
       creators[newID] = gov;
       passportID = newID;
 
-      emit LogMint(newID, account);
+      emit LogMint(newID, account, _tokenURIs[i]);
     }
   }
 
@@ -189,6 +206,20 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     */
   function _baseURI() internal view override returns (string memory) {
     return baseTokenURI;
+  }
+
+  /**
+    * @dev Override {ERC721URIStorageUpgradeable-_burn}
+   */
+  function _burn(uint256 _tokenId) internal virtual override(ERC721URIStorageUpgradeable, ERC721Upgradeable) {
+    ERC721URIStorageUpgradeable._burn(_tokenId);
+  }
+
+  /**
+    * @dev Override {ERC721URIStorageUpgradeable-tokenURI}
+   */
+  function tokenURI(uint256 _tokenId) public view virtual override(ERC721URIStorageUpgradeable, ERC721Upgradeable) returns (string memory) {
+    return ERC721URIStorageUpgradeable.tokenURI(_tokenId);
   }
 
   uint256[50] private __gap;

@@ -10,7 +10,7 @@ async function setup() {
   await roleManager.mock.governance.returns(gov.address);
   await roleManager.mock.isMarketplace.withArgs(alice.address).returns(false);
   const Passport = await ethers.getContractFactory('Passport');
-  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', 'https://sapien.network/metadata/passport/', roleManager.address]);
+  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', 'ipfs://', roleManager.address]);
   await passport.deployed();
   return {roleManager, passport, owner, gov, alice, bob, carol};
 }
@@ -22,13 +22,31 @@ describe('Passport', async () => {
   describe('Mint', async () => {
     it('expect to mint', async () => {
       ({roleManager, passport, owner, gov, alice, bob, carol} = await setup());
-      await passport.connect(gov).mint([alice.address, bob.address, carol.address, gov.address]);
-      await passport.connect(gov).mint([alice.address, alice.address, alice.address, alice.address, alice.address, alice.address]);
+      await passport.connect(gov).mint(
+        [alice.address, bob.address, carol.address, gov.address], 
+        [
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX1',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX2',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX3',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX4',
+        ]
+      );
+      await passport.connect(gov).mint(
+        [alice.address, alice.address, alice.address, alice.address, alice.address, alice.address],
+        [
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX5',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX6',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX7',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX8',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX9',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX10',
+        ]  
+      );
       expect((await passport.passportID()).toString()).to.eq('10');
 
       expect(await passport.ownerOf(1)).to.eq(alice.address);
       expect(await passport.ownerOf(2)).to.eq(bob.address);
-      expect(await passport.tokenURI(1)).to.eq('https://sapien.network/metadata/passport/1');
+      
       await passport.tokenByIndex(1).then((res: any) => {
         expect(res.toString()).to.eq('2');
       });
@@ -38,9 +56,25 @@ describe('Passport', async () => {
     });
     describe('reverts if', async () => {
       it('caller is not governance', async () => {
-        await expect(passport.mint([alice.address, bob.address]))
+        await expect(passport.mint(
+          [alice.address, bob.address],
+          [
+            `QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX`,
+            `QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX`,
+          ]
+        ))
           .to.be.revertedWith('Passport: CALLER_NO_GOVERNANCE');
       });
+    });
+  });
+
+  describe('Token URI', async () => {
+    it('expect the correct uri', async () => {
+      expect(await passport.tokenURI(1)).to.eq('ipfs://QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX1');
+    });
+    it('expect to set uri', async () => {
+      await passport.connect(gov).setTokenURI(1, 'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX11');
+      expect(await passport.tokenURI(1)).to.eq('ipfs://QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX11');
     });
   });
 
@@ -86,7 +120,13 @@ describe('Passport', async () => {
     it('expect to pause', async () => {
       await passport.connect(gov).pause();
       expect(await passport.paused()).to.be.true;
-      await expect(passport.connect(gov).mint([alice.address, bob.address]))
+      await expect(passport.connect(gov).mint(
+        [alice.address, bob.address],
+        [
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX',
+          'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX',
+        ]
+      ))
         .to.be.revertedWith('Pausable: paused');
       await expect(passport.connect(carol).transferFrom(carol.address, bob.address, 4))
         .to.be.revertedWith('Pausable: paused');
@@ -114,5 +154,5 @@ describe('Passport', async () => {
           .to.be.revertedWith('Pausable: paused');
       });
     });
-  });
+  });  
 });
