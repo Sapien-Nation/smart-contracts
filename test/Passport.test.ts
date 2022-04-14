@@ -76,6 +76,12 @@ describe('Passport', async () => {
       await passport.connect(gov).setTokenURI(1, 'QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX11');
       expect(await passport.tokenURI(1)).to.eq('ipfs://QmXjadqm444yc1wS7U6R8dFyGFe5N6CZycFt5S4YUd3bSX11');
     });
+    describe('reverts if', async () => {
+      it('caller is not governance', async () => {
+        await expect(passport.setTokenURI(1, 'xxxxxxxxxxxxxxxxxxxx'))
+          .to.be.revertedWith('Passport: CALLER_NO_GOVERNANCE');
+      });
+    });
   });
 
   describe('Sign', async () => {
