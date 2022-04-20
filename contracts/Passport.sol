@@ -6,10 +6,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Burnab
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IPassport.sol";
 
-contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, ERC721URIStorageUpgradeable {
+contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, ERC721URIStorageUpgradeable, ERC2771ContextUpgradeable {
   // Latest passport id starting from 1
   uint256 public passportID;
   // Role Manager contract address
@@ -34,13 +35,15 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     string memory _name,
     string memory _symbol,
     string memory _baseTokenURI,
-    address _roleManager
+    address _roleManager,
+    address _trustedForwarder
   ) public initializer {
     __ERC721_init(_name, _symbol);
     __ERC721Enumerable_init();
     __ERC721Burnable_init();
     __Ownable_init();
     __Pausable_init();
+    __ERC2771Context_init(_trustedForwarder);
     __Passport_init_unchained(_baseTokenURI, _roleManager);
   }
 
@@ -210,16 +213,30 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
 
   /**
     * @dev Override {ERC721URIStorageUpgradeable-_burn}
-   */
+    */
   function _burn(uint256 _tokenId) internal virtual override(ERC721URIStorageUpgradeable, ERC721Upgradeable) {
     ERC721URIStorageUpgradeable._burn(_tokenId);
   }
 
   /**
     * @dev Override {ERC721URIStorageUpgradeable-tokenURI}
-   */
+    */
   function tokenURI(uint256 _tokenId) public view virtual override(ERC721URIStorageUpgradeable, ERC721Upgradeable) returns (string memory) {
     return ERC721URIStorageUpgradeable.tokenURI(_tokenId);
+  }
+
+  /**
+    * @dev Override {ERC2771ContextUpgradeable-_msgSender}
+    */
+  function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+    return ERC2771ContextUpgradeable._msgSender();
+  }
+
+  /**
+    * @dev Override {ERC2771ContextUpgradeable-_msgData}
+    */
+  function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+    return ERC2771ContextUpgradeable._msgData();
   }
 
   uint256[50] private __gap;
