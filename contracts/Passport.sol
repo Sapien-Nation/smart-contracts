@@ -19,6 +19,8 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   bool public NGTransferable;
   // Base token URI
   string public baseTokenURI;
+  // Biconomy forwarder contract address
+  address public trustedForwarder;
 
   // Passport ID => passport sign status
   mapping(uint256 => bool) public override isSigned;
@@ -43,17 +45,18 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     __ERC721Burnable_init();
     __Ownable_init();
     __Pausable_init();
-    __ERC2771Context_init(_trustedForwarder);
-    __Passport_init_unchained(_baseTokenURI, _roleManager);
+    __Passport_init_unchained(_baseTokenURI, _roleManager, _trustedForwarder);
   }
 
   function __Passport_init_unchained(
     string memory _baseTokenURI,
-    address _roleManager
+    address _roleManager,
+    address _trustedForwarder
   ) internal initializer {
     require(_roleManager != address(0), "Passport: ROLE_MANAGER_ADDRESS_INVALID");
     roleManager = IRoleManager(_roleManager);
     baseTokenURI = _baseTokenURI;
+    trustedForwarder = _trustedForwarder;
   }
 
   /**
@@ -97,12 +100,20 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
   /**
     * @dev Set token uri for `_tokenId`
     * Accessible by only Sapien governance
-   */
+    */
   function setTokenURI(
     uint256 _tokenId,
     string memory _tokenURI
   ) external onlyGovernance {
     ERC721URIStorageUpgradeable._setTokenURI(_tokenId, _tokenURI);
+  }
+
+  /**
+    * @dev Set biconomy trusted forwarder
+    * Accessible by only Sapien governance
+    */
+  function setTrustedForwarder(address _trustedForwarder) external onlyGovernance {
+    trustedForwarder = _trustedForwarder;
   }
 
   /**
@@ -223,6 +234,13 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     */
   function tokenURI(uint256 _tokenId) public view virtual override(ERC721URIStorageUpgradeable, ERC721Upgradeable) returns (string memory) {
     return ERC721URIStorageUpgradeable.tokenURI(_tokenId);
+  }
+
+  /**
+    * @dev Override {ERC2771ContextUpgradeable-isTrustedForwarder}
+    */
+  function isTrustedForwarder(address _forwarder) public view virtual override returns (bool) {
+    return _forwarder == trustedForwarder;
   }
 
   /**
