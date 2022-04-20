@@ -153,7 +153,7 @@ contract Passport is IPassport, OwnableUpgradeable, PausableUpgradeable, ERC721E
     require(!isSigned[_tokenId], "Passport: SIGNED_NOT_BURNABLE");
     ERC721BurnableUpgradeable.burn(_tokenId);
 
-    emit LogBurn(_tokenId, msg.sender);
+    emit LogBurn(_tokenId, _msgSender());
   }
 
   /**
