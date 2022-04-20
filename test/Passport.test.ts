@@ -10,7 +10,7 @@ async function setup() {
   await roleManager.mock.governance.returns(gov.address);
   await roleManager.mock.isMarketplace.withArgs(alice.address).returns(false);
   const Passport = await ethers.getContractFactory('Passport');
-  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', 'ipfs://', roleManager.address]);
+  const passport = await upgrades.deployProxy(Passport, ['Sapien Passport NFT', 'SPASS', 'ipfs://', roleManager.address, '0x86C80a8aa58e0A4fa09A69624c31Ab2a6CAD56b8']);
   await passport.deployed();
   return {roleManager, passport, owner, gov, alice, bob, carol};
 }
