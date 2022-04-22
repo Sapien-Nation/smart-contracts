@@ -1,14 +1,8 @@
 # Sapien Smart Contract
 This repo includes smart contracts for:
-- Badge management
 - Role management
 - Passport token (ERC721)
 - Passport sale and auction
-
-## BadgeStore
-- ERC1155 contract
-- Mint, purchase and grant tribe tokens
-- Manage governance, badge administrator
 
 ## RoleManager
 - Manage Sapien governance and other roles like marketplaces, tokens
@@ -67,6 +61,10 @@ $ npx hardhat test
 ## Step 4. Deploy
 ### Polygon mainnet
 `$ npx hardhat --network mainnet deploy`
+#### RoleManager
+`$ npx hardhat run scripts/deploy_role_manager.ts --network mainnet`
+#### Passport NFT
+`$ npx hardhat run scripts/deploy_passport.ts --network mainnet`
 
 ### Mumbai testnet
 `$ npx hardhat --network testnet deploy`
