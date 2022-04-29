@@ -10,17 +10,24 @@ import 'solidity-coverage';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const { DEPLOYER_PRIVATE_KEY } = process.env;
+const { 
+  DEPLOYER_PRIVATE_KEY,
+  INFURA_KEY
+} = process.env;
 
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {},
-    testnet: {
+    mumbai: {
       url: "https://rpc-mumbai.maticvigil.com",
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     },
-    mainnet: {
+    matic: {
       url: "https://polygon-rpc.com",
+      accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     }
   },
