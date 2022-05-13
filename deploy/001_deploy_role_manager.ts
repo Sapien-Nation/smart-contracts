@@ -6,14 +6,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployments: { deploy },
     getNamedAccounts,
   } = hre;
-  const { deployer, spn, revenueAddress, governance } = await getNamedAccounts();
+  const { deployer } = await getNamedAccounts();
 
-  await deploy('BadgeStore', {
+  await deploy('RoleManager', {
     from: deployer,
-    args: ['Sapien Badge Store', 'https://sapien.network/badges/{id}.json', 'v3', spn, revenueAddress, governance],
+    args: [],
     log: true,
   });
 };
 
 export default func;
-func.tags = ['BadgeStore'];
+func.tags = ['RoleManager'];

@@ -5,3 +5,4 @@ artifacts
 typechain
 .env
 build
+coverage

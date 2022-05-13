@@ -2,23 +2,33 @@ import { HardhatUserConfig } from 'hardhat/types';
 import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
+import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
+import 'solidity-coverage';
 
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const { DEPLOYER_PRIVATE_KEY } = process.env;
+const { 
+  DEPLOYER_PRIVATE_KEY,
+  INFURA_KEY,
+  ALCHEMY_KEY
+} = process.env;
 
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {},
-    testnet: {
-      url: "https://rpc-mumbai.maticvigil.com",
+    mumbai: {
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     },
-    mainnet: {
+    matic: {
       url: "https://polygon-rpc.com",
+      accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     }
   },
