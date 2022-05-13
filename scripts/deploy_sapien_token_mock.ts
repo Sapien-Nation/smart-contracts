@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-  const BICONOMY_TRUSTED_FORWARDER_ADDRESS = '0x3D1D6A62c588C1Ee23365AF623bdF306Eb47217A';
+  const BICONOMY_TRUSTED_FORWARDER_ADDRESS = '0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b';
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying contracts with the account:", deployer.address);

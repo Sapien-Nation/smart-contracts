@@ -1,8 +1,8 @@
 import { ethers, upgrades } from 'hardhat';
 
 async function main() {
-  const ROLE_MANAGER_ADDRESS = '0xD167923fe667060834a9BCcf832344B204c96D5c';
-  const BICONOMY_TRUSTED_FORWARDER_ADDRESS = '0x3D1D6A62c588C1Ee23365AF623bdF306Eb47217A';
+  const ROLE_MANAGER_ADDRESS = '0xBac27Ed5d503b2F40C76Ff0c747bF55C753433DA';
+  const BICONOMY_TRUSTED_FORWARDER_ADDRESS = '0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b';
 
   const Passport = await ethers.getContractFactory('Passport');
   const passport = await upgrades.deployProxy(Passport, [

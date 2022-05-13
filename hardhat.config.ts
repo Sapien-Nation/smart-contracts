@@ -12,14 +12,15 @@ dotenv.config();
 
 const { 
   DEPLOYER_PRIVATE_KEY,
-  INFURA_KEY
+  INFURA_KEY,
+  ALCHEMY_KEY
 } = process.env;
 
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {},
     mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     },
     matic: {
