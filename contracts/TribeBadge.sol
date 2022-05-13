@@ -15,6 +15,7 @@ contract TribeBadge is Ownable, ERC1155Supply {
 	
 	event LogSignerSet(address indexed signer);
 	event LogMint(address indexed account, uint256 tokenID);
+	event LogNewBadgeID(uint256 badgeID);
 
 	constructor(
 		string memory _uri, 
@@ -74,6 +75,17 @@ contract TribeBadge is Ownable, ERC1155Supply {
 
 			emit LogMint(_accounts[i], _tokenIDs[i]);
 		}
+	}
+
+	/**
+	 * @dev New `badgeID` added 1
+	 * Accessible by only contract owner
+	 */
+	function newBadgeID() external onlyOwner {
+		uint256 __badgeID = badgeID;
+		badgeID = __badgeID + 1;
+
+		emit LogNewBadgeID(__badgeID + 1);
 	}
 
 	function _verify(
