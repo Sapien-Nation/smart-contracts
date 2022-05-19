@@ -27,6 +27,17 @@ contract TribeBadge is Ownable, ERC1155Supply {
 		emit LogSignerSet(_signer);
 	}
 
+	/** 
+	 * @dev Set `signer` wallet
+	 * Accessible by only contract owner
+	 */
+	function setSigner(address _signer) external onlyOwner {
+		require(_signer != address(0), "TribeBadge: ZERO_ADDRESS");
+		signer = _signer;
+
+		emit LogSignerSet(_signer);
+	}
+
 	/**
 	 * @dev Mint new badges
 	 * If caller is contract owner, `_sig` must be empty ("")
