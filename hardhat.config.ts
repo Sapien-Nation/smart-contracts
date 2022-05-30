@@ -30,6 +30,10 @@ const config: HardhatUserConfig = {
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
     }
   },
   solidity: {
