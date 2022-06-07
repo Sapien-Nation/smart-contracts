@@ -53,7 +53,7 @@ contract TribeBadge is Ownable, ERC1155Supply {
 		require(_accounts.length == _tokenIDs.length, "TribeBadge: ARRAY_LENGTH_MISMATCH");
 		if (msg.sender == owner()) {
 			for(uint256 i = 0; i < _tokenIDs.length; i++) {
-				require(_tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
+				require(0 < _tokenIDs[i] && _tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
 				super._mint(_accounts[i], _tokenIDs[i], 1, "");
 
 				emit LogMint(_accounts[i], _tokenIDs[i]);
@@ -62,7 +62,7 @@ contract TribeBadge is Ownable, ERC1155Supply {
 			bytes32 msgHash = keccak256(abi.encodePacked(msg.sender, _accounts, _tokenIDs));
 			require(_verify(msgHash, _sig), "TribeBadge: SIG_VERIFY_FAILED");
 			for(uint256 i = 0; i < _tokenIDs.length; i++) {
-				require(_tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
+				require(0 < _tokenIDs[i] && _tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
 				// badges must be previously minted by multisig
 				require(ERC1155Supply.totalSupply(_tokenIDs[i]) >= 1, "TribeBadge: TOKEN_ID_NOT_ISSUED");
 				super._mint(_accounts[i], _tokenIDs[i], 1, "");
@@ -71,6 +71,26 @@ contract TribeBadge is Ownable, ERC1155Supply {
 			}
 		}
 	}
+  
+  // TODO check function caller
+  /**
+   * @dev Create and mint new badges
+   */
+  function createBatch(
+    address[] calldata _accounts,
+    bytes calldata _sig
+  ) external {
+    bytes32 msgHash = keccak256(abi.encodePacked(msg.sender, _accounts));
+    require(_verify(msgHash, _sig), "TribeBadge: SIG_VERIFY_FAILED");
+    uint256 __badgeID = badgeID;
+		badgeID = __badgeID + 1;
+		emit LogCreate(__badgeID + 1);
+    for(uint256 i = 0; i < _accounts.length; i++) {
+      super._mint(_accounts[i], __badgeID + 1, 1, "");
+
+      emit LogMint(_accounts[i], __badgeID + 1);
+    }
+  }
 
 	/**
 	 * @dev Burn badges
@@ -89,17 +109,17 @@ contract TribeBadge is Ownable, ERC1155Supply {
 		}
 	}
 
-	/**
-	 * @dev Create a new badge
-	 * Accessible by only contract owner
-	 * `badgeID`++
-	 */
-	function createBadge() external onlyOwner {
-		uint256 __badgeID = badgeID;
-		badgeID = __badgeID + 1;
+	// /**
+	//  * @dev Create a new badge
+	//  * Accessible by only contract owner
+	//  * `badgeID`++
+	//  */
+	// function createBadge() external onlyOwner {
+	// 	uint256 __badgeID = badgeID;
+	// 	badgeID = __badgeID + 1;
 
-		emit LogCreate(__badgeID + 1);
-	}
+	// 	emit LogCreate(__badgeID + 1);
+	// }
 
 	function _verify(
 		bytes32 _msgHash,
