@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract TribeBadge is Ownable, ERC1155Supply {
+contract TribeBadge is Ownable, ERC1155Burnable {
 	using ECDSA for bytes32;
 
 	// Latest badge id starting from 1
@@ -44,6 +44,7 @@ contract TribeBadge is Ownable, ERC1155Supply {
 	 * If caller is contract owner, `_sig` must be empty ("")
 	 * Else `_sig` must be checked validity
 	 * Length of `_accounts` and `_tokenIDs` must be the same
+   * Each account must not have more than 1 badge
 	 */
 	function mintBatch(
 		address[] calldata _accounts,
@@ -51,44 +52,37 @@ contract TribeBadge is Ownable, ERC1155Supply {
 		bytes calldata _sig
 	) external {
 		require(_accounts.length == _tokenIDs.length, "TribeBadge: ARRAY_LENGTH_MISMATCH");
-		if (msg.sender == owner()) {
-			for(uint256 i = 0; i < _tokenIDs.length; i++) {
-				require(0 < _tokenIDs[i] && _tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
-				super._mint(_accounts[i], _tokenIDs[i], 1, "");
-
-				emit LogMint(_accounts[i], _tokenIDs[i]);
-			}
-		} else {
-			bytes32 msgHash = keccak256(abi.encodePacked(msg.sender, _accounts, _tokenIDs));
+    if (msg.sender != owner()) {
+      bytes32 msgHash = keccak256(abi.encodePacked(msg.sender, _accounts, _tokenIDs));
 			require(_verify(msgHash, _sig), "TribeBadge: SIG_VERIFY_FAILED");
-			for(uint256 i = 0; i < _tokenIDs.length; i++) {
-				require(0 < _tokenIDs[i] && _tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
-				// badges must be previously minted by multisig
-				require(ERC1155Supply.totalSupply(_tokenIDs[i]) >= 1, "TribeBadge: TOKEN_ID_NOT_ISSUED");
-				super._mint(_accounts[i], _tokenIDs[i], 1, "");
+    }
+    for(uint256 i = 0; i < _tokenIDs.length; i++) {
+      require(0 < _tokenIDs[i] && _tokenIDs[i] <= badgeID, "TribeBadge: TOKEN_ID_INVALID");
+      require(balanceOf(_accounts[i], _tokenIDs[i]) == 0, "TribeBadge: TOKEN_ALREADY_OWN");
+      super._mint(_accounts[i], _tokenIDs[i], 1, "");
 
-				emit LogMint(_accounts[i], _tokenIDs[i]);
-			}
-		}
+      emit LogMint(_accounts[i], _tokenIDs[i]);
+    }
 	}
   
-  // TODO check function caller
   /**
    * @dev Create and mint new badges
+   * Accessible by only non multi sig owners
    */
   function createBatch(
     address[] calldata _accounts,
     bytes calldata _sig
   ) external {
+    require(msg.sender != owner(), "TribeBadge: MULTISIG_NOT_ALLOWED");
     bytes32 msgHash = keccak256(abi.encodePacked(msg.sender, _accounts));
     require(_verify(msgHash, _sig), "TribeBadge: SIG_VERIFY_FAILED");
-    uint256 __badgeID = badgeID;
-		badgeID = __badgeID + 1;
-		emit LogCreate(__badgeID + 1);
+    uint256 newBadgeID = badgeID + 1;
+		badgeID = newBadgeID;
+		emit LogCreate(newBadgeID);
     for(uint256 i = 0; i < _accounts.length; i++) {
-      super._mint(_accounts[i], __badgeID + 1, 1, "");
+      super._mint(_accounts[i], newBadgeID, 1, "");
 
-      emit LogMint(_accounts[i], __badgeID + 1);
+      emit LogMint(_accounts[i], newBadgeID);
     }
   }
 
@@ -96,8 +90,11 @@ contract TribeBadge is Ownable, ERC1155Supply {
 	 * @dev Burn badges
 	 * Accessible by only contract owner
 	 * Length of `_accounts` and `_tokenIDs` must be the same
+   * 
+   * {ERC1155Burnable-burn(address,uint256,uint256)}
+   * {ERC1155Burnable-burnBatch(address,uint256[],uint256[])}
 	 */
-	function burnBatch(
+	function burnBadges(
 		address[] calldata _accounts,
 		uint256[] calldata _tokenIDs
 	) external onlyOwner {
@@ -109,22 +106,27 @@ contract TribeBadge is Ownable, ERC1155Supply {
 		}
 	}
 
-	// /**
-	//  * @dev Create a new badge
-	//  * Accessible by only contract owner
-	//  * `badgeID`++
-	//  */
-	// function createBadge() external onlyOwner {
-	// 	uint256 __badgeID = badgeID;
-	// 	badgeID = __badgeID + 1;
-
-	// 	emit LogCreate(__badgeID + 1);
-	// }
-
+  /**
+   * @dev Verify signature
+   */
 	function _verify(
 		bytes32 _msgHash,
 		bytes memory _sig
 	) private view returns (bool) {
 		return _msgHash.toEthSignedMessageHash().recover(_sig) == signer;
 	}
+
+  /**
+   * @dev Override {ERC1155-_safeTransferFrom}
+   * Transfer is disabled
+   */
+  function _safeTransferFrom(
+    address,
+    address,
+    uint256,
+    uint256,
+    bytes memory
+  ) internal virtual override {
+    require(false, "TribeBadge: TRANSFER_DISABLED");
+  }
 }
