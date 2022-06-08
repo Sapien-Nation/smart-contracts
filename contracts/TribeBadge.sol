@@ -86,26 +86,6 @@ contract TribeBadge is Ownable, ERC1155Burnable {
     }
   }
 
-	/**
-	 * @dev Burn badges
-	 * Accessible by only contract owner
-	 * Length of `_accounts` and `_tokenIDs` must be the same
-   * 
-   * {ERC1155Burnable-burn(address,uint256,uint256)}
-   * {ERC1155Burnable-burnBatch(address,uint256[],uint256[])}
-	 */
-	function burnBadges(
-		address[] calldata _accounts,
-		uint256[] calldata _tokenIDs
-	) external onlyOwner {
-		require(_accounts.length == _tokenIDs.length, "TribeBadge: ARRAY_LENGTH_MISMATCH");
-		for(uint256 i = 0; i < _tokenIDs.length; i++) {
-			super._burn(_accounts[i], _tokenIDs[i], 1);
-
-			emit LogBurn(_accounts[i], _tokenIDs[i]);
-		}
-	}
-
   /**
    * @dev Verify signature
    */

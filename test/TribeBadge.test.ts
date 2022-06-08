@@ -67,21 +67,7 @@ describe('TribeBadge', async () => {
       });
     });
 	});
-
-	describe('BurnBadges', async () => {
-		it('expect to burn batch tokens', async () => {
-			await tribeBadge.burnBadges([bob.address, carol.address], [1, 1]);
-      expect((await tribeBadge.balanceOf(bob.address, 1)).toString()).to.eq('0');
-			expect((await tribeBadge.balanceOf(carol.address, 1)).toString()).to.eq('0');
-		});
-		describe('reverts if', async () => {
-			it('caller is not owner', async () => {
-				await expect(tribeBadge.connect(alice).burnBadges([bob.address, carol.address], [1, 1]))
-					.to.be.revertedWith('Ownable: caller is not the owner');
-			});
-		});
-	});
-
+  
   describe('Non transferable', async () => {
     it('expect to badge transfer disabled', async () => {
       await expect(tribeBadge.connect(darren).safeTransferFrom(darren.address, alice.address, 1, 1, ethers.constants.HashZero))
