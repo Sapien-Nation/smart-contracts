@@ -4,8 +4,9 @@ import { expect } from 'chai';
 async function setup() {
   const [owner, alice, bob, carol, darren, eric] = await ethers.getSigners();
 	const signer = ethers.Wallet.createRandom();
+  const trustedForwarder:string = '0xeF60a8E421639Fc8A63b98118c5b780579b1009A';
   const TribeBadge = await ethers.getContractFactory('TribeBadge');
-  const tribeBadge = await TribeBadge.deploy('https://sapien.network/badges/{id}.json', signer.address);
+  const tribeBadge = await TribeBadge.deploy('https://sapien.network/badges/{id}.json', signer.address, trustedForwarder);
   await tribeBadge.deployed();
   return {tribeBadge, owner, alice, bob, carol, darren, eric, signer};
 }
