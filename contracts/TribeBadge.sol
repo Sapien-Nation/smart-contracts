@@ -4,29 +4,32 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
-contract TribeBadge is Ownable, ERC1155Burnable {
+contract TribeBadge is Ownable, ERC1155Burnable, ERC2771Context {
 	using ECDSA for bytes32;
 
 	// Latest badge id starting from 1
 	uint256 public badgeID;
 	// Sapien signer address
 	address public signer;
+  // Biconomy forwarder contract address
+  address public trustedForwarder;
 	
   event LogURISet(string uri);
 	event LogSignerSet(address indexed signer);
+  event LogTrustedForwarderSet(address indexed trustedForwarder);
 	event LogMint(address indexed account, uint256 tokenID);
 	event LogBurn(address indexed account, uint256 tokenID);
 	event LogCreate(uint256 badgeID);
   
 	constructor(
 		string memory _uri, 
-		address _signer
-	) ERC1155(_uri) {
-		require(_signer != address(0), "TribeBadge: ZERO_ADDRESS");
-		signer = _signer;
-
-		emit LogSignerSet(_signer);
+		address _signer,
+    address _trustedForwarder
+	) ERC1155(_uri) ERC2771Context(_trustedForwarder) {
+    _setSigner(_signer);
+    _setTrustedForwarder(_trustedForwarder);
 	}
 
   /** 
@@ -45,11 +48,16 @@ contract TribeBadge is Ownable, ERC1155Burnable {
 	 * Accessible by only contract owner
 	 */
 	function setSigner(address _signer) external onlyOwner {
-		require(_signer != address(0), "TribeBadge: ZERO_ADDRESS");
-		signer = _signer;
-
-		emit LogSignerSet(_signer);
+		_setSigner(_signer);
 	}
+
+  /** 
+	 * @dev Set `trustedForwarder` address
+	 * Accessible by only contract owner
+	 */
+  function setTrustedForwarder(address _trustedForwarder) external onlyOwner {
+    _setTrustedForwarder(_trustedForwarder);
+  }
 
 	/**
 	 * @dev Mint new badges
@@ -99,6 +107,15 @@ contract TribeBadge is Ownable, ERC1155Burnable {
   }
 
   /**
+   * @dev Override {ERC2771Context-isTrustedForwarder}
+   * Compare with `trustedForwarder`
+   * We want flexibility to update biconomy forwarder address
+   */
+  function isTrustedForwarder(address _forwarder) public view override returns (bool) {
+    return _forwarder == trustedForwarder;
+  }
+
+  /**
    * @dev Verify signature
    */
 	function _verify(
@@ -120,5 +137,33 @@ contract TribeBadge is Ownable, ERC1155Burnable {
     bytes memory
   ) internal virtual override {
     require(false, "TribeBadge: TRANSFER_DISABLED");
+  }
+
+  function _setSigner(address _signer) private {
+    require(_signer != address(0), "TribeBadge: ZERO_ADDRESS");
+		signer = _signer;
+
+		emit LogSignerSet(_signer);
+  }
+
+  function _setTrustedForwarder(address _trustedForwarder) private {
+    require(_trustedForwarder != address(0), "TribeBadge: ZERO_ADDRESS");
+    trustedForwarder = _trustedForwarder;
+
+    emit LogTrustedForwarderSet(_trustedForwarder);
+  }
+
+  /**
+    * @dev Override {ERC2771Context-_msgSender}
+    */
+  function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address) {
+    return ERC2771Context._msgSender();
+  }
+
+  /**
+    * @dev Override {ERC2771Context-_msgData}
+    */
+  function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+    return ERC2771Context._msgData();
   }
 }
