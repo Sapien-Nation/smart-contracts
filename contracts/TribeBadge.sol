@@ -13,11 +13,12 @@ contract TribeBadge is Ownable, ERC1155Burnable {
 	// Sapien signer address
 	address public signer;
 	
+  event LogURISet(string uri);
 	event LogSignerSet(address indexed signer);
 	event LogMint(address indexed account, uint256 tokenID);
 	event LogBurn(address indexed account, uint256 tokenID);
 	event LogCreate(uint256 badgeID);
-
+  
 	constructor(
 		string memory _uri, 
 		address _signer
@@ -27,6 +28,17 @@ contract TribeBadge is Ownable, ERC1155Burnable {
 
 		emit LogSignerSet(_signer);
 	}
+
+  /** 
+	 * @dev Set contract URI
+	 * Accessible by only contract owner
+	 */
+  function setURI(string memory _uri) external onlyOwner {
+    require(bytes(_uri).length > 0, "TribeBadge: EMPTY_STRING");
+    super._setURI(_uri);
+
+    emit LogURISet(_uri);
+  }
 
 	/** 
 	 * @dev Set `signer` wallet

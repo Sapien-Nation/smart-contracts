@@ -67,7 +67,32 @@ describe('TribeBadge', async () => {
       });
     });
 	});
-  
+
+  describe('Setters for URI and signer address', async () => {
+    it('expect to set new URI', async () => {
+      await tribeBadge.setURI('https://sapien.network/badges/updated/{id}.json');
+      expect(await tribeBadge.uri(1)).to.eq('https://sapien.network/badges/updated/{id}.json');
+    });
+    it('expect to set new signer', async () => {
+      await expect(tribeBadge.setSigner(alice.address))
+        .to.emit(tribeBadge, 'LogSignerSet').withArgs(alice.address);
+    });
+    describe('reverts if', async () => {
+      it('caller is not owner', async () => {
+        await expect(tribeBadge.connect(alice).setURI('https://sapien.network/badges/updated/{id}.json'))
+          .to.be.revertedWith('Ownable: caller is not the owner');
+      });
+      it('new URI is empty string', async () => {
+        await expect(tribeBadge.setURI(''))
+          .to.be.revertedWith('TribeBadge: EMPTY_STRING');
+      });
+      it('new signer is zero address', async () => {
+        await expect(tribeBadge.setSigner(ethers.constants.AddressZero))
+          .to.be.revertedWith('TribeBadge: ZERO_ADDRESS');
+      });
+    });
+  });
+
   describe('Non transferable', async () => {
     it('expect to badge transfer disabled', async () => {
       await expect(tribeBadge.connect(darren).safeTransferFrom(darren.address, alice.address, 1, 1, ethers.constants.HashZero))
