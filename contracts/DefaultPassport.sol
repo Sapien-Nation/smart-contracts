@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -10,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "./interfaces/IRoleManager.sol";
 import "./interfaces/IDefaultPassport.sol";
 
-contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, ERC721URIStorageUpgradeable, ERC2771ContextUpgradeable {
+contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgradeable, ERC721EnumerableUpgradeable, ERC721URIStorageUpgradeable, ERC2771ContextUpgradeable {
   // Latest passport id starting from 1
   uint256 public passportID;
   // Role Manager contract address
@@ -26,7 +25,6 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
   mapping(uint256 => address) public override creators;
 
   event LogMint(uint256 indexed tokenID, address indexed account, string tokenURI);
-  event LogBurn(uint256 indexed tokenID, address indexed account);
 
   function initialize(
     string memory _name,
@@ -37,7 +35,6 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
   ) public initializer {
     __ERC721_init(_name, _symbol);
     __ERC721Enumerable_init();
-    __ERC721Burnable_init();
     __Ownable_init();
     __Pausable_init();
     __Passport_init_unchained(_baseTokenURI, _roleManager, _trustedForwarder);
@@ -115,6 +112,7 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
     * @dev Mint new passports
     * Accessible by only Sapien governance
     * Sapien governance become passport `creator`
+    * Account can have only one passport
     */
   function mint(
     address[] memory _accounts,
@@ -123,6 +121,7 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
     require(_accounts.length == _tokenURIs.length, "Passport: ARRAY_LENGTH_MISMATCH");
     address gov = roleManager.governance();
     for (uint256 i = 0; i < _accounts.length; i++) {
+      require(super.balanceOf(_accounts[i]) < 1, "Each account can have only one passport");
       address account = _accounts[i];
       uint256 newID = passportID + 1;
       super._safeMint(account, newID);
@@ -132,15 +131,6 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
 
       emit LogMint(newID, account, _tokenURIs[i]);
     }
-  }
-
-  /**
-    * @dev Burn passports
-    */
-  function burn(uint256 _tokenId) public virtual override whenNotPaused {
-    ERC721BurnableUpgradeable.burn(_tokenId);
-
-    emit LogBurn(_tokenId, _msgSender());
   }
 
   /**
@@ -171,6 +161,12 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
     _unpause();
   }
 
+  modifier onlyMintAvailable(address from, address to) {
+    require(from == address(0), "Passport transfer is not available");
+    require(to != address(0), "Passport burn is not available");
+    _;
+  }
+
   /**
     * @dev Tokens are non-transferable when:
     * - caller is non-governance && `NGTransferable` is false
@@ -180,7 +176,7 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
     address _from,
     address _to,
     uint256 _tokenID
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) whenNotPaused {
+  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) onlyMintAvailable(_from, _to) whenNotPaused {
     if (_msgSender() != roleManager.governance() && !NGTransferable) {
       revert("Passport: NG_NOT_TRANSFERABLE");
     }
