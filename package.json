@@ -25,6 +25,8 @@
     "typescript": "^4.3.5"
   },
   "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run --network matic scripts/deploy_default_passport.ts",
     "build-contracts": "sol-merger \"./contracts/*.sol\" ./build"
   }
 }
