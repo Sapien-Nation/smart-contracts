@@ -28,6 +28,8 @@
     "compile": "npx hardhat compile",
     "deploy:avatar": "npx hardhat run --network matic scripts/deploy_avatar.ts",
     "build-contracts": "sol-merger \"./contracts/*.sol\" ./build",
-    "test:avatar": "npx hardhat test test/Avatar.test.ts"
+    "test": "npx hardhat test",
+    "test:avatar": "npx hardhat test test/Avatar.test.ts",
+    "test:newbadge": "npx hardhat test test/EarlyAccessTribeBadge.test.ts"
   }
 }
