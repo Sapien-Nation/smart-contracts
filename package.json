@@ -27,6 +27,8 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run --network matic scripts/deploy_default_passport.ts",
-    "build-contracts": "sol-merger \"./contracts/*.sol\" ./build"
+    "build-contracts": "sol-merger \"./contracts/*.sol\" ./build",
+    "test:default-passport": "npx hardhat test test/DefaultPassport.test.ts",
+    "test:passport": "npx hardhat test test/Passport.test.ts"
   }
 }
