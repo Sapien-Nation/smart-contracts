@@ -176,7 +176,7 @@ contract DefaultPassport is IDefaultPassport, OwnableUpgradeable, PausableUpgrad
     address _from,
     address _to,
     uint256 _tokenID
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) onlyMintAvailable(_from, _to) whenNotPaused {
+  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) whenNotPaused onlyMintAvailable(_from, _to) {
     if (_msgSender() != roleManager.governance() && !NGTransferable) {
       revert("Passport: NG_NOT_TRANSFERABLE");
     }

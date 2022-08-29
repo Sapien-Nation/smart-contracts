@@ -102,6 +102,8 @@ describe('Passport', async () => {
         ]
       ))
         .to.be.revertedWith('Pausable: paused');
+      await expect(passport.connect(carol).transferFrom(carol.address, bob.address, 3))
+        .to.be.revertedWith('Pausable: paused');
     });
     it('expect to unpause', async () => {
       await passport.connect(gov).unpause();

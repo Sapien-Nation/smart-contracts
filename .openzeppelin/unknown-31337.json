@@ -7,7 +7,7 @@
       "hash": "0xac3ee1337e91718e0940022d645bbf25bdc4a2ccc16b80e9acc7c37a4b65fcad",
       "type": 0,
       "accessList": null,
-      "blockHash": "0x1b1e5132efe6f497af3fa237710bffa5fefff2dc07ff03ed65664388898c249c",
+      "blockHash": "0xe958657e6bba6d39fdc3d63bb9230698a08825d7566c68de21c3d13c9ebd3e7a",
       "blockNumber": 5,
       "transactionIndex": 0,
       "confirmations": 1,
@@ -67,9 +67,9 @@
     }
   ],
   "impls": {
-    "c2f4ce1ff8583090fa176fcb3be3163c092dbe5d03f3c2a70234e0af362e3c4a": {
+    "c63c4bd4f66b488e20080087d424e5e3cf9ebf79ee6e710841a73a9f8fef5567": {
       "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-      "txHash": "0x8fe411d669be0dfa9340baa35ea67abc5ad8b0381b549cf89d242d7c1e9c7fbb",
+      "txHash": "0x17c56477eabf9d87c57e9d1811d2d13f08131b142da59c76df8acd7dcb2a7998",
       "layout": {
         "storage": [
           {
@@ -225,7 +225,7 @@
           {
             "contract": "DefaultPassport",
             "label": "roleManager",
-            "type": "t_contract(IRoleManager)14919",
+            "type": "t_contract(IRoleManager)13704",
             "src": "contracts\\DefaultPassport.sol:16"
           },
           {
@@ -263,7 +263,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_contract(IRoleManager)14919": {
+          "t_contract(IRoleManager)13704": {
             "label": "contract IRoleManager"
           },
           "t_bool": {
