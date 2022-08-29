@@ -44,7 +44,7 @@ contract EarlyAccessTribeBadge is ERC1155, Ownable, Pausable, ERC2771Context {
 	function mintBatch(
 		address[] calldata _accounts,
 		uint256[] calldata _tokenIDs
-	) external onlyOwner {
+	) external onlyOwner whenNotPaused {
 		require(_accounts.length == _tokenIDs.length, "TribeBadge: ARRAY_LENGTH_MISMATCH");
     
     for(uint256 i = 0; i < _tokenIDs.length; i++) {
@@ -66,6 +66,20 @@ contract EarlyAccessTribeBadge is ERC1155, Ownable, Pausable, ERC2771Context {
 		emit LogCreate(newBadgeID);
   }
 
+  /**
+   * @dev Pause the contract
+   */
+  function pause() external onlyOwner {
+    _pause();
+  }
+
+  /**
+   * @dev Unpause the contract
+   */
+  function unpause() external onlyOwner {
+    _unpause();
+  }
+
   function _beforeTokenTransfer(
     address operator,
     address from,
@@ -73,7 +87,7 @@ contract EarlyAccessTribeBadge is ERC1155, Ownable, Pausable, ERC2771Context {
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override {
+  ) internal override whenNotPaused {
     require(
       from == address(0) && to != address(0),
       "Error: token is not transferable and burnable"
