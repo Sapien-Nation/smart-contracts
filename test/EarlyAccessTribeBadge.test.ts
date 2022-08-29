@@ -73,4 +73,22 @@ describe('TribeBadge', async () => {
         .to.be.revertedWith('Error: token is not transferable and burnable');
     });
   })
+
+  describe('Pausability', async () => {
+    it('expect to pause', async () => {
+      await tribeBadge.pause();
+      expect(await tribeBadge.paused()).to.be.true;
+      await expect(tribeBadge.mintBatch(
+        [alice.address, bob.address],
+        [1, 1]
+      ))
+        .to.be.revertedWith('Pausable: paused');
+      await expect(tribeBadge.connect(darren).safeTransferFrom(darren.address, bob.address, 1, 1, ethers.constants.HashZero))
+        .to.be.revertedWith('Pausable: paused');
+    });
+    it('expect to unpause', async () => {
+      await tribeBadge.unpause();
+      expect(await tribeBadge.paused()).to.be.false;
+    });
+  });
 });
