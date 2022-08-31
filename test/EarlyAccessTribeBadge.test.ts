@@ -5,7 +5,7 @@ async function setup() {
   const [owner, alice, bob, carol, darren, eric] = await ethers.getSigners();
   const trustedForwarder:string = '0xeF60a8E421639Fc8A63b98118c5b780579b1009A';
   const TribeBadge = await ethers.getContractFactory('EarlyAccessTribeBadge');
-  const tribeBadge = await TribeBadge.deploy('https://sapien.network/badges/{id}.json', trustedForwarder);
+  const tribeBadge = await TribeBadge.deploy('https://sapien.network/early_access_badges/{id}.json', trustedForwarder);
   await tribeBadge.deployed();
   return {tribeBadge, owner, alice, bob, carol, darren, eric};
 }

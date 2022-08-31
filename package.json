@@ -27,7 +27,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "deploy:avatar": "npx hardhat run --network matic scripts/deploy_avatar.ts",
-    "deploy:eab": "npx hardhat run --network matic scripts/deploy_early_access_badge.ts",
+    "deploy:eab": "npx hardhat run --network matic scripts/deploy_early_access_tribe.ts",
     "build-contracts": "sol-merger \"./contracts/*.sol\" ./build",
     "test": "npx hardhat test",
     "test:avatar": "npx hardhat test test/Avatar.test.ts",
