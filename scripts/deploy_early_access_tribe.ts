@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-  const uri = 'https://sapien.network/badges/{id}.json';
+  const uri = 'https://sapien.network/early_access_badges/{id}.json';
   const trustedForwarder = '0x86C80a8aa58e0A4fa09A69624c31Ab2a6CAD56b8'; // polygon mainnet
   // const trustedForwarder = '0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b'; // polygon mumbai
 
