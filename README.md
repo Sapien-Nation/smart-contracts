@@ -68,3 +68,12 @@ $ npx hardhat test
 
 ### Mumbai testnet
 `$ npx hardhat --network testnet deploy`
+
+
+## Step 5. Verify
+### Polygon mainnet
+`$ npx hardhat verify --network matic contract_address constructor_args`
+ex: `$ npx hardhat verify --network matic 0xceA572fa39197a75f3028Ca886432206a5B49a6f arg1 arg2 arg3...`
+
+### Mumbai testnet
+`$ npx hardhat verify --network mumbai contract_address constructor_args`

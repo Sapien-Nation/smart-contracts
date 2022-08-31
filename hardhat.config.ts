@@ -13,7 +13,8 @@ dotenv.config();
 const { 
   DEPLOYER_PRIVATE_KEY,
   INFURA_KEY,
-  ALCHEMY_KEY
+  ALCHEMY_KEY,
+  CHAINSCAN_API_KEY
 } = process.env;
 
 const config: HardhatUserConfig = {
@@ -63,6 +64,9 @@ const config: HardhatUserConfig = {
       'mainnet': '0x9ba109487226cb29e54d1fc55f5e55ebff3f0bfe'
     }
   },
+  etherscan: {
+    apiKey: CHAINSCAN_API_KEY,
+ }
 };
 
 export default config;
